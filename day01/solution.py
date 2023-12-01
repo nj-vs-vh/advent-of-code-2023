@@ -3,7 +3,10 @@ from typing import Callable
 
 
 def extract_digits(
-    inp: str, digit_re: re.Pattern, digit_parser: Callable[[str], int], debug: bool
+    inp: str,
+    digit_re: re.Pattern,
+    digit_parser: Callable[[str], int],
+    debug: bool,
 ) -> list[int]:
     first_last_digits: list[int] = []
     for line in inp.splitlines():
