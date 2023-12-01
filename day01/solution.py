@@ -2,7 +2,9 @@ import re
 from typing import Callable
 
 
-def extract_digits(inp: str, digit_re: re.Pattern, digit_parser: Callable[[str], int], debug: bool) -> list[int]:
+def extract_digits(
+    inp: str, digit_re: re.Pattern, digit_parser: Callable[[str], int], debug: bool
+) -> list[int]:
     first_last_digits: list[int] = []
     for line in inp.splitlines():
         digits_matched: list[str] = []
@@ -21,7 +23,9 @@ def extract_digits(inp: str, digit_re: re.Pattern, digit_parser: Callable[[str],
 
 
 def part_1(inp: str, debug: bool):
-    calibration_values = extract_digits(inp, digit_re=re.compile(r"\d"), digit_parser=int, debug=debug)
+    calibration_values = extract_digits(
+        inp, digit_re=re.compile(r"\d"), digit_parser=int, debug=debug
+    )
     if debug:
         print(calibration_values)
     print(sum(calibration_values))
