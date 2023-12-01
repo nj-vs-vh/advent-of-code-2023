@@ -1,2 +1,12 @@
 [tool.black]
-line_length = 120
+line-length = 120
+
+[tool.isort]
+profile = 'black'
+
+[tool.mypy]
+incremental = false
+files = '.'
+exclude = [
+    "dist"
+]

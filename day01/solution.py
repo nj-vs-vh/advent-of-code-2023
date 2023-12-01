@@ -20,14 +20,14 @@ def extract_digits(inp: str, digit_re: re.Pattern, digit_parser: Callable[[str],
     return first_last_digits
 
 
-def part_1(inp: str, debug: str):
+def part_1(inp: str, debug: bool):
     calibration_values = extract_digits(inp, digit_re=re.compile(r"\d"), digit_parser=int, debug=debug)
     if debug:
         print(calibration_values)
     print(sum(calibration_values))
 
 
-def part_2(inp: str, debug: str):
+def part_2(inp: str, debug: bool):
     digit_spelling = [
         "one",
         "two",
