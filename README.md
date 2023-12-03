@@ -6,3 +6,7 @@ I'm going to use Python, which I know and love, and to make my solutions
 - readable
 - fully typed
 - reasonably performant
+
+```shell
+python run.py <day number> [--debug [--input custom-input.txt [--part 1]]]
+```
