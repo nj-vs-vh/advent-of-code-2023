@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import ClassVar
 
 
@@ -25,7 +25,6 @@ class Card:
         )
 
 
-
 def part_1(inp: str, debug: bool):
     worth_total = 0
     for line in inp.splitlines():
@@ -43,5 +42,5 @@ def part_2(inp: str, debug: bool):
     for idx, (card, copies) in enumerate(zip(card_data, card_copies)):
         for idx_copied in range(idx + 1, idx + card.points() + 1):
             card_copies[idx_copied] += copies
-    
+
     print(sum(card_copies))
