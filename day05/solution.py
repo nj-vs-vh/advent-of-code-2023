@@ -8,27 +8,39 @@ class Range:
     start: int
     length: int
 
-    def overlap(self, other: "Range") -> tuple[Optional["Range"], list["Range"]]:
+    @property
+    def end(self) -> int:
+        return self.start + self.length
+
+    def __repr__(self) -> str:
+        return f"Range [{self.start / 1e9 :.4f}, {(self.end) / 1e9 :.4f})"
+
+    def overlap(
+        self, other: "Range"
+    ) -> tuple[Optional["Range"], Optional["Range"], Optional["Range"]]:
         """
-        Find overlap range between the self and the other; also returns ranges that
-        are left after subtracting the overlap from te original
+        Find overlap range between the self and the other; also returns subranges of self
+        that lie to the left and to the right of the overlap
         """
+        left: Optional[Range] = None
+        right: Optional[Range] = None
         overlap_start = max(self.start, other.start)
-        overlap_end = min(self.start + self.length, other.start + other.length)
+        overlap_end = min(self.end, other.end)
         if overlap_end <= overlap_start:
-            return None, [self]
+            if self.start < other.start:
+                left = self
+            else:
+                right = self
+            return left, None, right
         overlap = Range(start=overlap_start, length=overlap_end - overlap_start)
-        rest: list[Range] = []
         if overlap.start > self.start:
-            rest.append(Range(start=self.start, length=overlap.start - self.start))
-        if overlap.start + overlap.length < self.start + self.length:
-            rest.append(
-                Range(
-                    start=overlap.start + overlap.length,
-                    length=self.length - overlap.length - overlap.start,
-                )
+            left = Range(start=self.start, length=overlap.start - self.start)
+        if overlap.end < self.end:
+            right = Range(
+                start=overlap.end,
+                length=self.end - overlap.end,
             )
-        return overlap, rest
+        return left, overlap, right
 
 
 @dataclass
@@ -57,20 +69,28 @@ class Map:
                 return num + range_map.offset
         return num
 
-    def apply_to_range(self, range: Range) -> list[Range]:
-        unmapped = [range]
-        mapped: list[Range] = []
+    def apply_to_range(self, range: Range) -> list[tuple[Range, bool]]:
+        subranges: list[tuple[Range, bool]] = [(range, False)]  # range, already mapped flag
         for range_map in self.range_maps:
-            unmapped_still: list[Range] = []
-            for subrange in unmapped:
-                overlap, rest = subrange.overlap(range_map.source_range)
-                unmapped_still.extend(rest)
+            subranges_new: list[tuple[Range, bool]] = []
+            for subrange, is_mapped in subranges:
+                if is_mapped:
+                    subranges_new.append((subrange, True))
+                    continue
+                left, overlap, right = subrange.overlap(range_map.source_range)
+                if left:
+                    subranges_new.append((left, False))
                 if overlap:
-                    mapped.append(
-                        Range(start=overlap.start + range_map.offset, length=overlap.length)
+                    subranges_new.append(
+                        (
+                            Range(start=overlap.start + range_map.offset, length=overlap.length),
+                            True,
+                        )
                     )
-            unmapped = unmapped_still
-        return mapped + unmapped
+                if right:
+                    subranges_new.append((right, False))
+            subranges = subranges_new
+        return subranges
 
 
 def parse_seeds(inp: str) -> list[int]:
@@ -133,7 +153,8 @@ def part_2(inp: str, debug: bool):
 
     ranges = seed_ranges
     for map in maps:
-        ranges = list(chain.from_iterable(map.apply_to_range(range) for range in ranges))
+        mapped_subranges = list(chain.from_iterable(map.apply_to_range(range) for range in ranges))
+        ranges = [r for r, _ in mapped_subranges]
 
     if debug:
         print(ranges)
