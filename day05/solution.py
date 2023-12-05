@@ -13,11 +13,11 @@ class Range:
         Find overlap range between the self and the other; also returns ranges that
         are left after subtracting the overlap from te original
         """
-        overlap_left = max(self.start, other.start)
-        overlap_right = min(self.start + self.length, other.start + other.length)
-        if overlap_right < overlap_left:
+        overlap_start = max(self.start, other.start)
+        overlap_end = min(self.start + self.length, other.start + other.length)
+        if overlap_end <= overlap_start:
             return None, [self]
-        overlap = Range(start=overlap_left, length=overlap_right - overlap_left)
+        overlap = Range(start=overlap_start, length=overlap_end - overlap_start)
         rest: list[Range] = []
         if overlap.start > self.start:
             rest.append(Range(start=self.start, length=overlap.start - self.start))
