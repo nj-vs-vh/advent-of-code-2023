@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import time
 import traceback
 from pathlib import Path
 
@@ -26,16 +27,18 @@ if __name__ == "__main__":
     if 1 in parts_to_run:
         print(f"\nRunning day {day} pt. 1...")
         try:
+            t_start = time.time()
             solution.part_1(input_, args.debug)
-            print(f"Done!")
+            print(f"Done in {1000*(time.time() - t_start) :.4f} msec")
         except Exception:
             print("Error running pt. 1")
             traceback.print_exc()
     if 2 in parts_to_run:
         print(f"\nRunning day {day} pt. 2...")
         try:
+            t_start = time.time()
             solution.part_2(input_, args.debug)
-            print(f"Done!")
+            print(f"Done in {1000*(time.time() - t_start) :.4f} msec")
         except Exception:
             print("Error running pt. 2")
             traceback.print_exc()
