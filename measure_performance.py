@@ -23,7 +23,7 @@ class PerfMeasurement:
 
     @property
     def mean(self) -> float:
-        return np.mean(self.t_sample)
+        return float(np.mean(self.t_sample))
 
     def __add__(self, other: "PerfMeasurement") -> "PerfMeasurement":
         assert len(self.t_sample) == len(other.t_sample)
