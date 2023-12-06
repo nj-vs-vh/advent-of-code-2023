@@ -3,6 +3,47 @@ import importlib
 import time
 import traceback
 from pathlib import Path
+from typing import Optional
+
+
+def run_day(
+    day: int,
+    input_: str,
+    parts_to_run: list[int],
+    debug: bool,
+) -> tuple[Optional[float], Optional[float]]:
+    day_package_name = f"day{day:0>2}"
+    day_dir = Path(__file__).parent / day_package_name
+    if not day_dir.exists():
+        raise ValueError(f"Solution dir not found for day = {day}")
+
+    input_file = day_dir / input_
+    input_ = input_file.read_text()
+
+    solution = importlib.import_module(f"{day_package_name}.solution")
+    runtime_1, runtime_2 = None, None
+    if 1 in parts_to_run:
+        print(f"\nRunning day {day} pt. 1...")
+        try:
+            t_start = time.time()
+            solution.part_1(input_, debug)
+            runtime_1 = 1000 * (time.time() - t_start)
+            print(f"Done in {runtime_1:.4f} msec")
+        except Exception:
+            print("Error running pt. 1")
+            traceback.print_exc()
+    if 2 in parts_to_run:
+        print(f"\nRunning day {day} pt. 2...")
+        try:
+            t_start = time.time()
+            solution.part_2(input_, debug)
+            runtime_2 = 1000 * (time.time() - t_start)
+            print(f"Done in {runtime_2:.4f} msec")
+        except Exception:
+            print("Error running pt. 2")
+            traceback.print_exc()
+    return runtime_1, runtime_2
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -13,32 +54,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    day = int(args.day)
-    day_package_name = f"day{day:0>2}"
-    day_dir = Path(__file__).parent / day_package_name
-    if not day_dir.exists():
-        raise ValueError(f"Solution dir not found for day = {args.day}")
-
-    input_file = day_dir / args.input
-    input_ = input_file.read_text()
-
-    parts_to_run = [int(p) for p in args.parts.split(",")]
-    solution = importlib.import_module(f"{day_package_name}.solution")
-    if 1 in parts_to_run:
-        print(f"\nRunning day {day} pt. 1...")
-        try:
-            t_start = time.time()
-            solution.part_1(input_, args.debug)
-            print(f"Done in {1000*(time.time() - t_start) :.4f} msec")
-        except Exception:
-            print("Error running pt. 1")
-            traceback.print_exc()
-    if 2 in parts_to_run:
-        print(f"\nRunning day {day} pt. 2...")
-        try:
-            t_start = time.time()
-            solution.part_2(input_, args.debug)
-            print(f"Done in {1000*(time.time() - t_start) :.4f} msec")
-        except Exception:
-            print("Error running pt. 2")
-            traceback.print_exc()
+    run_day(
+        day=int(args.day),
+        input_=args.input,
+        parts_to_run=[int(p) for p in args.parts.split(",")],
+        debug=args.debug,
+    )
