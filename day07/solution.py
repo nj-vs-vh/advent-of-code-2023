@@ -132,11 +132,13 @@ def calculate_winnings(hands_with_bids: list[tuple[Hand, int]], debug: bool) -> 
         for hand, bid in hands_with_bids:
             print(hand, "bid = ", bid)
     hands_with_bids.sort(key=lambda hand_bid: hand_bid[0])
+
     if debug:
-        print("Sorted:")
+        print("\nSorted:")
         for hand, bid in hands_with_bids:
             print(hand, "bid = ", bid)
-    return sum(bid * (rank + 1) for rank, (_, bid) in enumerate(hands_with_bids))
+
+    return sum(bid * (hand_rank + 1) for hand_rank, (_, bid) in enumerate(hands_with_bids))
 
 
 def part_1(inp: str, debug: bool):
