@@ -46,8 +46,8 @@ if __name__ == "__main__":
             with suppress_output():
                 for _ in range(100):
                     t1, t2 = run_day(day, input_="input.txt", parts_to_run=[1, 2], debug=False)
-                    assert t1
-                    assert t2
+                    assert t1, "time for pt 1 is not measured"
+                    assert t2, "time for pt 2 is not measured"
                     sample_1.append(t1)
                     sample_2.append(t2)
             days_perf.append(
@@ -59,8 +59,8 @@ if __name__ == "__main__":
                     ),
                 )
             )
-        except Exception:
-            print(f"Error measuring day {day}, ignoring")
+        except Exception as e:
+            print(f"Error measuring day {day}, ignoring: {e!r}")
 
     # calculating "scores"
     both_part_measurements = [p1 + p2 for _, (p1, p2) in days_perf]
