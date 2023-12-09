@@ -9,6 +9,7 @@ Network = dict[str, tuple[str, str]]
 
 NODE_LINE_REGEX = re.compile(r"(\w+) = \((\w+), (\w+)\)")
 
+
 def parse_network(input: str) -> Network:
     res: Network = {}
     for line in input.splitlines():
@@ -35,7 +36,9 @@ def parse_directions(inp: str) -> Directions:
     return [Turn(char) for char in first_line]
 
 
-def follow_directions(network: Network, start_node: str, directions: Directions) -> Generator[str, None, None]:
+def follow_directions(
+    network: Network, start_node: str, directions: Directions
+) -> Generator[str, None, None]:
     current = start_node
     for turn in itertools.cycle(directions):
         yield current
@@ -48,12 +51,14 @@ def follow_directions(network: Network, start_node: str, directions: Directions)
 
 def part_1(inp: str, debug: bool):
     directions = parse_directions(inp)
-    network =parse_network(inp)
+    network = parse_network(inp)
     if debug:
         print(*directions, sep=", ")
         for n in network:
             print(n)
-    for idx, node in enumerate(follow_directions(network, start_node="AAA", directions=directions)):
+    for idx, node in enumerate(
+        follow_directions(network, start_node="AAA", directions=directions)
+    ):
         if debug:
             print("Current node: ", node)
         if node == "ZZZ":
