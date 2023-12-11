@@ -6,6 +6,8 @@ I'm going to use Python, which I know and love, and to make my solutions
 - readable
 - fully typed
 - reasonably performant
+- zero-dependency (except for visualizations, which are done separately)
+- single-threaded Python
 
 ```shell
 python run.py <day number> [--debug [--input custom-input.txt [--part 1]]]
@@ -17,7 +19,8 @@ Just for fun, this year I'm keeping track of how long my solutions take to run. 
 optimize them and update the numbers.
 
 Methodology:
-- Measured quantity: the time between the moment string input is read from the disk and the moment the answer is calculated
+- Measured time: between the moment string input is read from the disk and the moment the answer is calculated
+- Each part is measured independently, no data is shared between parts (i.e. input parsing is included in both times)
 - Averaged over 50 runs
 - System: 2021 Mac M1 Pro 16 Gb 
 
@@ -28,15 +31,16 @@ Updated as days go with `python measure_performance.py`
 <!-- generated table start -->
 **Day** | **Part 1**, msec | **Part 2**, msec | **Total**, msec | **Relative score**
 ---: | :---: | :---: | :---: | ---
-1 | 0.62 ± 0.04 | 0.95 ± 0.07 | 1.57 ± 0.09 | 🚀🚀
-2 | 1.3 ± 0.3 | 1.38 ± 0.09 | 2.6 ± 0.3 | 🚀
-3 | 6.0 ± 0.5 | 4.9 ± 0.4 | 10.9 ± 0.6 | 🐢🐢
-4 | 1.07 ± 0.05 | 1.31 ± 0.09 | 2.4 ± 0.1 | 🚀
-5 | 0.26 ± 0.02 | 4.4 ± 0.1 | 4.6 ± 0.1 | 🛹
-6 | 0.006 ± 0.001 | 0.0022 ± 0.0008 | 0.008 ± 0.002 | 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
-7 | 3.6 ± 0.5 | 3.7 ± 0.5 | 7.3 ± 0.7 | 🐢
-8 | 3.6 ± 0.09 | 342.0 ± 7.0 | 346.0 ± 7.0 | 🐢🐢🐢🐢🐢🐢🐢🐢🐢🐢
-9 | 2.38 ± 0.05 | 2.43 ± 0.05 | 4.81 ± 0.09 | 🛹
-10 | 23.2 ± 0.2 | 30.3 ± 0.3 | 53.5 ± 0.4 | 🐢🐢🐢🐢🐢🐢
-All days | 42.0 ± 0.7 | 391.0 ± 7.0 | 433.0 ± 7.0 | 
+1 | 0.8 ± 0.6 | 1.2 ± 0.6 | 2.0 ± 1.0 | 🚀🚀
+2 | 1.4 ± 0.7 | 1.6 ± 0.8 | 3.0 ± 1.0 | 🚀
+3 | 5.5 ± 0.4 | 4.5 ± 0.3 | 10.0 ± 0.5 | 🐢
+4 | 1.05 ± 0.03 | 1.27 ± 0.05 | 2.32 ± 0.07 | 🚀🚀
+5 | 0.24 ± 0.02 | 4.26 ± 0.07 | 4.51 ± 0.08 | 🚀
+6 | 0.006 ± 0.001 | 0.0021 ± 0.0004 | 0.008 ± 0.002 | 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
+7 | 3.4 ± 0.4 | 3.6 ± 0.4 | 7.0 ± 0.6 | 🛹
+8 | 3.6 ± 0.1 | 345.0 ± 5.0 | 348.0 ± 5.0 | 🐢🐢🐢🐢🐢🐢🐢
+9 | 2.38 ± 0.04 | 2.42 ± 0.04 | 4.8 ± 0.07 | 🚀
+10 | 22.9 ± 0.2 | 30.2 ± 0.3 | 53.1 ± 0.5 | 🐢🐢🐢🐢
+11 | 791.0 ± 7.0 | 794.0 ± 7.0 | 1580.0 ± 10.0 | 🐢🐢🐢🐢🐢🐢🐢🐢🐢🐢
+All days | 832.0 ± 7.0 | 1188.0 ± 7.0 | 2020.0 ± 10.0 | 
 <!-- generated table end -->
