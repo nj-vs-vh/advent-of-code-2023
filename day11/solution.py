@@ -1,6 +1,5 @@
 import itertools
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -11,8 +10,6 @@ class Coords:
 
 @dataclass(frozen=True)
 class Range:
-    """Copied with minimal modifications from day 5"""
-
     start: int
     length: int
 
@@ -27,38 +24,8 @@ class Range:
     def end(self) -> int:
         return self.start + self.length
 
-    def contains(self, i: int) -> bool:
-        return self.start <= i < self.end
-
     def __repr__(self) -> str:
         return f"Range[{self.start}, {(self.end)})"
-
-    def overlap(
-        self, other: "Range"
-    ) -> tuple[Optional["Range"], Optional["Range"], Optional["Range"]]:
-        """
-        Find overlap range between the self and the other; also returns subranges of self
-        that lie to the left and to the right of the overlap
-        """
-        left: Optional[Range] = None
-        right: Optional[Range] = None
-        overlap_start = max(self.start, other.start)
-        overlap_end = min(self.end, other.end)
-        if overlap_end <= overlap_start:
-            if self.start < other.start:
-                left = self
-            else:
-                right = self
-            return left, None, right
-        overlap = Range(start=overlap_start, length=overlap_end - overlap_start)
-        if overlap.start > self.start:
-            left = Range(start=self.start, length=overlap.start - self.start)
-        if overlap.end < self.end:
-            right = Range(
-                start=overlap.end,
-                length=self.end - overlap.end,
-            )
-        return left, overlap, right
 
 
 def parse_galaxies(inp: str) -> list[Coords]:
@@ -70,45 +37,34 @@ def parse_galaxies(inp: str) -> list[Coords]:
     return res
 
 
-def calculate_expansion_ranges(galaxy_coords: set[int]) -> list[Range]:
-    res: list[Range] = []
+def expansion_mask(galaxy_coords: set[int]) -> list[bool]:
+    res: list[bool] = []
     for galaxy_1, galaxy_2 in itertools.pairwise(sorted(galaxy_coords)):
-        range_start = galaxy_1 + 1
-        if galaxy_2 > range_start:
-            res.append(Range.from_edges(start=range_start, end=galaxy_2))
+        res.append(False)  # for galaxy 1
+        expansion_start = galaxy_1 + 1
+        if galaxy_2 > expansion_start:
+            res.extend([True] * (galaxy_2 - expansion_start))
+    # after the last galaxy we don't need to calculate the expansion
     return res
 
 
 def expanded_distance(
-    comoving_distance: Range, expansion_ranges: list[Range], expansion_factor: int, debug: bool
+    comoving_distance: Range,
+    expansion_mask: list[bool],
+    expansion_factor: int,
 ) -> int:
-    if debug:
-        print("... expanding distance")
-    res = 0
-    # expansion_ranges.sort(key=lambda r: r.start)
-    comoving_range_left: Optional[Range] = comoving_distance
-    for er in expansion_ranges:
-        unexpanded, expanded, comoving_range_left = comoving_range_left.overlap(er)
-        if debug:
-            print("... er =", er, "unex", unexpanded, "exp", expanded, "left", comoving_range_left)
-        if unexpanded is not None:
-            res += unexpanded.length
-        if expanded is not None:
-            res += expansion_factor * expanded.length
-        if comoving_range_left is None:
-            break
-    if comoving_range_left:
-        res += comoving_range_left.length
-
-    return res
+    return sum(
+        expansion_factor if is_expanded else 1
+        for is_expanded in expansion_mask[comoving_distance.start : comoving_distance.end]
+    )
 
 
 def sum_expanded_distances(galaxies: list[Coords], expansion_factor: int, debug: bool) -> int:
-    expansion_ranges_i = calculate_expansion_ranges({g.i for g in galaxies})
-    expansion_ranges_j = calculate_expansion_ranges({g.j for g in galaxies})
+    expansion_mask_i = expansion_mask({g.i for g in galaxies})
+    expansion_mask_j = expansion_mask({g.j for g in galaxies})
     if debug:
-        print(f"{expansion_ranges_i = }")
-        print(f"{expansion_ranges_j = }")
+        print(f"{expansion_mask_i = }")
+        print(f"{expansion_mask_j = }")
 
     distance_sum = 0
     for idx_start, start in enumerate(galaxies[:-1]):
@@ -118,15 +74,13 @@ def sum_expanded_distances(galaxies: list[Coords], expansion_factor: int, debug:
                 print(f"calculating distance #{idx_start + 1} {start} -> #{idx_end + 1} {end}")
             distance_i = expanded_distance(
                 comoving_distance=Range.from_edges(start.i, end.i),
-                expansion_ranges=expansion_ranges_i,
+                expansion_mask=expansion_mask_i,
                 expansion_factor=expansion_factor,
-                debug=debug,
             )
             distance_j = expanded_distance(
                 comoving_distance=Range.from_edges(start.j, end.j),
-                expansion_ranges=expansion_ranges_j,
+                expansion_mask=expansion_mask_j,
                 expansion_factor=expansion_factor,
-                debug=debug,
             )
             if debug:
                 print(f"\tdi = {distance_i}, dj = {distance_j}, total = {distance_i + distance_j}")
@@ -140,21 +94,24 @@ def sum_expanded_distances(galaxies: list[Coords], expansion_factor: int, debug:
 def part_1(inp: str, debug: bool):
     galaxies = parse_galaxies(inp)
     if debug:
-        print(inp)
-        print("galaxy coords = ", *galaxies, sep="\n\t")
-        expansion_ranges_i = calculate_expansion_ranges({g.i for g in galaxies})
-        expansion_ranges_j = calculate_expansion_ranges({g.j for g in galaxies})
-        print(f"{expansion_ranges_i = }")
-        print(f"{expansion_ranges_j = }")
+        print("input:\n", inp, "\n\n")
+        print("comoving galaxy coords = ", *galaxies, sep="\n\t")
+        print()
+        expansion_mask_i = expansion_mask({g.i for g in galaxies})
+        expansion_mask_j = expansion_mask({g.j for g in galaxies})
+        print(f"{expansion_mask_i = }")
+        print(f"{expansion_mask_j = }")
 
+        # printing expanded map
+        debug_expansion_factor = 3
         galaxy_set = set(galaxies)
         height = max(g.i for g in galaxies) + 1
         width = max(g.j for g in galaxies) + 1
         expanded_map: list[list[str]] = []
         galaxy_idx = 1
         for i in range(height):
-            if any(er.contains(i) for er in expansion_ranges_i):
-                expanded_map.extend([[], []])
+            if i < len(expansion_mask_i) - 1 and expansion_mask_i[i]:
+                expanded_map.extend([[] for _ in range(debug_expansion_factor)])
             else:
                 line = []
                 for j in range(width):
@@ -162,22 +119,24 @@ def part_1(inp: str, debug: bool):
                         line.append(str(galaxy_idx))
                         galaxy_idx += 1
                     else:
-                        if any(er.contains(j) for er in expansion_ranges_j):
-                            line.append("|")
-                            line.append("|")
+                        if j < len(expansion_mask_j) - 1 and expansion_mask_j[j]:
+                            line.extend(["|"] * debug_expansion_factor)
                         else:
                             line.append(".")
                 expanded_map.append(line)
         expanded_width = len(next(l for l in expanded_map if l))
-        expanded_map = [l or ["="] * expanded_width for l in expanded_map]
+        expanded_map = [l or ["-" for _ in range(expanded_width)] for l in expanded_map]
         for row in expanded_map:
-            for char in row:
-                print(char, end="")
-            print()
+            print("".join(row))
 
     print(sum_expanded_distances(galaxies, expansion_factor=2, debug=debug))
 
 
 def part_2(inp: str, debug: bool):
-    galaxies = parse_galaxies(inp)
-    print(sum_expanded_distances(galaxies, expansion_factor=1000000, debug=False))
+    print(
+        sum_expanded_distances(
+            galaxies=parse_galaxies(inp),
+            expansion_factor=1000000,
+            debug=False,
+        )
+    )
