@@ -17,7 +17,7 @@ def parse_galaxies(inp: str) -> list[Coords]:
     return res
 
 
-def expansion_mask(galaxy_coords: set[int], expansion_factor: int) -> list[int]:
+def expanded_length(galaxy_coords: set[int], expansion_factor: int) -> list[int]:
     res: list[int] = []
     for galaxy_1, galaxy_2 in itertools.pairwise(sorted(galaxy_coords)):
         res.append(1)  # for galaxy 1
@@ -29,12 +29,25 @@ def expansion_mask(galaxy_coords: set[int], expansion_factor: int) -> list[int]:
     return res
 
 
+def cumsum(values: list[int]) -> list[int]:
+    sum_ = 0
+    res: list[int] = []
+    for v in values:
+        sum_ += v
+        res.append(sum_)
+    return res
+
+
 def sum_expanded_distances(galaxies: list[Coords], expansion_factor: int, debug: bool) -> int:
-    expansion_mask_i = expansion_mask({g.i for g in galaxies}, expansion_factor)
-    expansion_mask_j = expansion_mask({g.j for g in galaxies}, expansion_factor)
+    expanded_length_i = expanded_length({g.i for g in galaxies}, expansion_factor)
+    expanded_length_j = expanded_length({g.j for g in galaxies}, expansion_factor)
     if debug:
-        print(f"{expansion_mask_i = }")
-        print(f"{expansion_mask_j = }")
+        print(f"{expanded_length_i = }")
+        print(f"{expanded_length_j = }")
+
+    # got the idea from https://www.reddit.com/r/adventofcode/comments/18fmrjk/comment/kcv9xcz/
+    cumsum_i = cumsum(expanded_length_i)
+    cumsum_j = cumsum(expanded_length_j)
 
     distance_sum = 0
     for idx_start, start in enumerate(galaxies[:-1]):
@@ -46,17 +59,17 @@ def sum_expanded_distances(galaxies: list[Coords], expansion_factor: int, debug:
             i_min, i_max = start.i, end.i
             if i_min > i_max:
                 i_min, i_max = i_max, i_min
-            expanded_i = sum(expansion_mask_i[i_min:i_max])
+            delta_i = cumsum_i[i_max] - cumsum_i[i_min]
 
             j_min, j_max = start.j, end.j
             if j_min > j_max:
                 j_min, j_max = j_max, j_min
-            expanded_j = sum(expansion_mask_j[j_min:j_max])
+            delta_j = cumsum_j[j_max] - cumsum_j[j_min]
             if debug:
-                print(f"\tdi = {expanded_i}, dj = {expanded_j}, total = {expanded_i + expanded_j}")
+                print(f"\tdi = {delta_i}, dj = {delta_j}, total = {delta_i + delta_j}")
 
             # manhattan metric
-            distance_sum += expanded_i + expanded_j
+            distance_sum += delta_i + delta_j
 
     return distance_sum
 
@@ -69,14 +82,14 @@ def part_1(inp: str, debug: bool):
         print()
 
         debug_expansion_factor = 3
-        expansion_mask_i = expansion_mask(
+        expansion_length_i = expanded_length(
             {g.i for g in galaxies}, expansion_factor=debug_expansion_factor
         )
-        expansion_mask_j = expansion_mask(
+        expansion_length_j = expanded_length(
             {g.j for g in galaxies}, expansion_factor=debug_expansion_factor
         )
-        print(f"{expansion_mask_i = }")
-        print(f"{expansion_mask_j = }")
+        print(f"{expansion_length_i = }")
+        print(f"{expansion_length_j = }")
 
         # printing expanded map
         galaxy_set = set(galaxies)
@@ -85,7 +98,7 @@ def part_1(inp: str, debug: bool):
         expanded_map: list[list[str]] = []
         galaxy_idx = 1
         for i in range(height):
-            if i < len(expansion_mask_i) - 1 and expansion_mask_i[i] > 1:
+            if i < len(expansion_length_i) - 1 and expansion_length_i[i] > 1:
                 expanded_map.extend([[] for _ in range(debug_expansion_factor)])
             else:
                 line = []
@@ -94,7 +107,7 @@ def part_1(inp: str, debug: bool):
                         line.append(str(galaxy_idx))
                         galaxy_idx += 1
                     else:
-                        if j < len(expansion_mask_j) - 1 and expansion_mask_j[j] > 1:
+                        if j < len(expansion_length_j) - 1 and expansion_length_j[j] > 1:
                             line.extend(["|"] * debug_expansion_factor)
                         else:
                             line.append(".")
