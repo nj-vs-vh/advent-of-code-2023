@@ -27,14 +27,11 @@ def high_bits(num: int, full_length: int, count: int) -> int:
         return num >> (full_length - count)
 
 
-def find_mirror_points(row: tuple[MapCell, ...], debug: bool) -> tuple[set[int], set[int]]:
+def find_mirror_points(row: tuple[MapCell, ...]) -> tuple[set[int], set[int]]:
     length = len(row)
     bit_chars = ["1" if c is ROCK else "0" for c in row]
     normal = int("".join(bit_chars), base=2)
     reflected = int("".join(reversed(bit_chars)), base=2)
-    if debug:
-        print("normal: ", format_bin(normal, length))
-        print("reflected: ", format_bin(reflected, length))
 
     abs_max_offset = length - 2
     mirror_points: set[int] = set()
@@ -54,8 +51,6 @@ def find_mirror_points(row: tuple[MapCell, ...], debug: bool) -> tuple[set[int],
                 mirror_points.add(mirror_point)
             case 2:  # one smidge causes two-bit difference (one in normal and one in reflected parts)
                 mirror_points_with_smudge.add(mirror_point)
-    if debug:
-        print("result:", mirror_points, mirror_points_with_smudge)
     return mirror_points, mirror_points_with_smudge
 
 
@@ -91,7 +86,7 @@ def part_1(inp: str, debug: bool):
                 print("\nmap variant\n" + format_map(map_variant))
             common_mirror_points: Optional[set[int]] = None
             for row in map_variant:
-                mirror_points, _ = find_mirror_points(tuple(row), debug=debug)
+                mirror_points, _ = find_mirror_points(tuple(row))
                 if common_mirror_points is None:
                     common_mirror_points = mirror_points
                 else:
@@ -116,9 +111,7 @@ def part_2(inp: str, debug: bool):
         for factor, map_variant in zip((1, 100), (map, transposed(map))):
             if debug:
                 print("\nmap variant\n" + format_map(map_variant))
-            row_mirror_points = [
-                find_mirror_points(tuple(row), debug=debug) for row in map_variant
-            ]
+            row_mirror_points = [find_mirror_points(tuple(row)) for row in map_variant]
             found_smudged_mirror = False
             for smudged_row_idx in range(len(map_variant)):
                 common_mirror_points: set[int] = set()
