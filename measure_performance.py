@@ -44,7 +44,7 @@ if __name__ == "__main__":
             sample_1: list[float] = []
             sample_2: list[float] = []
             with suppress_output():
-                for _ in range(50):
+                for _ in range(30):
                     t1, t2 = run_day(day, input_="input.txt", parts_to_run=[1, 2], debug=False)
                     assert t1, "time for pt 1 is not measured"
                     assert t2, "time for pt 2 is not measured"
