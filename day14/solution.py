@@ -11,23 +11,30 @@ class Array2D(Generic[T]):
     height: int
 
     def __post_init__(self):
-        self._linear_idx_cache: dict[tuple[int, int, int], int] = dict()
+        # 4 x (width*height) array, stores linear indices for each rotation
+        self.rotated_linear_indices = []
+        for rot_cw in range(4):
+            rotated_linear_indices = []
+            for i, j, _ in self.iter_values():
+                width, height = self.width, self.height
+                for _ in range(rot_cw % 4):
+                    i, j = width - j - 1, i
+                    width, height = height, width
+                rotated_linear_indices.append(i * width + j)
+            self.rotated_linear_indices.append(rotated_linear_indices)
 
-    def iter_cells(self) -> Iterable[tuple[int, int, T]]:
-        for linear_idx, value in enumerate(self.values):
-            yield linear_idx // self.width, linear_idx % self.width, value
+    def iter_values(self) -> Iterable[tuple[int, int, T]]:
+        i = 0
+        j = 0
+        for value in self.values:
+            yield i, j, value
+            j += 1
+            if j == self.width:
+                i += 1
+                j = 0
 
     def _linear_idx(self, i: int, j: int, rot_cw: int) -> int:
-        cache_key = (i, j, rot_cw)
-        if cached := self._linear_idx_cache.get(cache_key):
-            return cached
-        width, height = self.width, self.height
-        for _ in range(rot_cw % 4):
-            i, j = width - j - 1, i
-            width, height = height, width
-        res = i * width + j
-        self._linear_idx_cache[cache_key] = res
-        return res
+        return self.rotated_linear_indices[rot_cw][i * self.width + j]
 
     def get(self, i: int, j: int, rot_cw: int) -> T:
         return self.values[self._linear_idx(i, j, rot_cw)]
@@ -75,7 +82,7 @@ class State:
 
     def north_support_load(self) -> int:
         result = 0
-        for i, _, has_rolling_rock in self.rolling.iter_cells():
+        for i, _, has_rolling_rock in self.rolling.iter_values():
             if has_rolling_rock:
                 result += self.rolling.height - i
         return result
