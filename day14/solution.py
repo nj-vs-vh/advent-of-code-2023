@@ -24,8 +24,7 @@ class Array2D(Generic[T]):
             self.rotated_linear_indices.append(rotated_linear_indices)
 
     def iter_values(self) -> Iterable[tuple[int, int, T]]:
-        i = 0
-        j = 0
+        i, j = 0, 0
         for value in self.values:
             yield i, j, value
             j += 1
