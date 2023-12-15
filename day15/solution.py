@@ -10,10 +10,7 @@ def hash_(string: str) -> int:
 
 
 def part_1(inp: str, debug: bool):
-    hash_sum = 0
-    for instruction in inp.split(","):
-        hash_sum += hash_(instruction)
-    print(hash_sum)
+    print(sum(hash_(instruction) for instruction in inp.split(",")))
 
 
 LensLabel = str
