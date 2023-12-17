@@ -1,5 +1,5 @@
-from typing import Literal, NamedTuple, Optional
 import heapq
+from typing import Literal, NamedTuple, Optional
 
 from utils import format_map
 
@@ -12,8 +12,8 @@ Direction = Literal["^", "v", "<", ">"]
 DIRECTIONS: list[Direction] = ["^", "v", "<", ">"]
 
 
-def move(i: int, j: int, d: Direction) -> tuple[int, int]:
-    match d:
+def move(i: int, j: int, direction: Direction) -> tuple[int, int]:
+    match direction:
         case "^":
             return (i - 1, j)
         case ">":
@@ -24,8 +24,8 @@ def move(i: int, j: int, d: Direction) -> tuple[int, int]:
             return (i, j - 1)
 
 
-def turn_right(d: Direction) -> Direction:
-    match d:
+def turn_right(direction: Direction) -> Direction:
+    match direction:
         case "^":
             return ">"
         case ">":
@@ -36,8 +36,8 @@ def turn_right(d: Direction) -> Direction:
             return "^"
 
 
-def turn_left(d: Direction) -> Direction:
-    match d:
+def turn_left(direction: Direction) -> Direction:
+    match direction:
         case "^":
             return "<"
         case "<":
@@ -48,12 +48,7 @@ def turn_left(d: Direction) -> Direction:
             return "^"
 
 
-class State(NamedTuple):
-    i: int
-    j: int
-    direction: Direction
-    concecutive_direct_moves: int
-    can_stop: bool
+State = tuple[int, int, Direction, int, bool]
 
 
 def find_crucible_path(
@@ -67,12 +62,12 @@ def find_crucible_path(
     width = len(city_block_losses[0])
 
     initial_states = [
-        State(
-            i=0,
-            j=0,
-            direction=direction,
-            concecutive_direct_moves=0,
-            can_stop=0 >= min_concecutive_direct_moves,
+        (
+            0,
+            0,
+            direction,
+            0,
+            0 >= min_concecutive_direct_moves,
         )
         for direction in DIRECTIONS
     ]
@@ -85,34 +80,41 @@ def find_crucible_path(
     while next_state_queue:
         current_loss, current = heapq.heappop(next_state_queue)
         visited.add(current)
-        if current.i == height - 1 and current.j == width - 1 and current.can_stop:
+        (
+            current_i,
+            current_j,
+            current_direction,
+            current_concecutive_direct_moves,
+            current_can_stop,
+        ) = current
+        if current_i == height - 1 and current_j == width - 1 and current_can_stop:
             print(current_loss)
             final_state = current
             break
 
         next_directions: list[Direction] = []
-        if current.concecutive_direct_moves >= min_concecutive_direct_moves:
-            next_directions.append(turn_right(current.direction))
-            next_directions.append(turn_left(current.direction))
-        if current.concecutive_direct_moves < max_concecutive_direct_moves:
-            next_directions.append(current.direction)
+        if current_concecutive_direct_moves >= min_concecutive_direct_moves:
+            next_directions.append(turn_right(current_direction))
+            next_directions.append(turn_left(current_direction))
+        if current_concecutive_direct_moves < max_concecutive_direct_moves:
+            next_directions.append(current_direction)
         for next_direction in next_directions:
             next_concecutive_moves = (
-                0 if next_direction != current.direction else current.concecutive_direct_moves + 1
+                0 if next_direction != current_direction else current_concecutive_direct_moves + 1
             )
-            next = State(
-                *move(current.i, current.j, next_direction),
+            next = (
+                *move(current_i, current_j, next_direction),
                 next_direction,
-                concecutive_direct_moves=next_concecutive_moves,
-                can_stop=next_concecutive_moves >= min_concecutive_direct_moves,
+                next_concecutive_moves,
+                next_concecutive_moves >= min_concecutive_direct_moves,
             )
             if (
-                0 <= next.i < height
-                and 0 <= next.j < width
-                and next.concecutive_direct_moves < max_concecutive_direct_moves
+                0 <= next[0] < height
+                and 0 <= next[1] < width
+                and next[3] < max_concecutive_direct_moves
                 and next not in visited
             ):
-                next_loss = current_loss + city_block_losses[next.i][next.j]
+                next_loss = current_loss + city_block_losses[next[0]][next[1]]
                 next_loss_so_far = heat_loss.get(next)
                 if next_loss_so_far is None or next_loss_so_far > next_loss:
                     heapq.heappush(next_state_queue, (next_loss, next))
