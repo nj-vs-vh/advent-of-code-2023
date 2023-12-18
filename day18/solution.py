@@ -1,9 +1,8 @@
-import collections
-from dataclasses import dataclass
-from enum import Enum
 import itertools
 import re
-from typing import Iterable, Mapping, MutableMapping, Optional
+from dataclasses import dataclass
+from enum import Enum
+from typing import Iterable, Optional
 
 from utils import format_map
 
@@ -132,33 +131,39 @@ def solve(inp: str, debug: bool, instructions_from_color: bool):
             map_[v.i - i_min][v.j - j_min] = "X"
         print(format_map(map_))
 
-    # go from slice to slice and calculate areas, keeping track of row overlap
+    # go from slice to slice and calculate areas, subtracting row overlap
+    all_vertices = sorted(itertools.chain(vertices, additional_vertices), key=lambda vert: vert.j)
     total_area = 0
     prev_j_intervals: Optional[list[tuple[int, int]]] = None
     for i_start, i_end in itertools.pairwise(i_slice_edges):
         slice_height = 1 + i_end - i_start
 
-        j_edges = sorted(
-            vertex.j
-            for vertex in itertools.chain(vertices, additional_vertices)
-            if vertex.i == i_start and Dir.D in vertex.connects
-        )
+        j_edges = [
+            vertex.j for vertex in all_vertices if vertex.i == i_start and Dir.D in vertex.connects
+        ]
         # assert len(j_edges) % 2 == 0, j_edges
         j_intervals = [(j_start, j_end) for j_start, j_end in zip(j_edges[::2], j_edges[1::2])]
         slice_width_total = sum(1 + j_end - j_start for j_start, j_end in j_intervals)
 
-        double_count = sum(
-            sum(interval_intersection_len(interv, prev) for prev in prev_j_intervals)
-            for interv in j_intervals
-        ) if prev_j_intervals is not None else 0
+        horizontal_intervals_overlap = (
+            sum(
+                sum(
+                    interval_intersection_len(interval, prev_interval)
+                    for prev_interval in prev_j_intervals
+                )
+                for interval in j_intervals
+            )
+            if prev_j_intervals is not None
+            else 0
+        )
         prev_j_intervals = j_intervals
 
-        slice_area = slice_height * slice_width_total - double_count
+        slice_area = slice_height * slice_width_total - horizontal_intervals_overlap
         if debug:
             print(
                 f"{i_start = }, {i_end = }, {j_edges = }, "
                 + f"{j_intervals = }, {slice_height = }, {slice_width_total = }, "
-                + f"{double_count = }, {slice_area = }"
+                + f"{horizontal_intervals_overlap = }, {slice_area = }"
             )
         total_area += slice_area
 
