@@ -39,7 +39,7 @@ class Condition:
 
 
 Accepted = Literal["A"]
-Rejected = Literal["B"]
+Rejected = Literal["R"]
 
 
 @dataclass
@@ -108,7 +108,7 @@ def part_1(inp: str, debug: bool):
     for part in parts:
         workflow = workflow_by_name["in"]
         while True:
-            target: str | None = None
+            target: str | Accepted | Rejected | None = None
             for rule in workflow.rules:
                 if rule.condition is None or rule.condition.check(part):
                     target = rule.target
