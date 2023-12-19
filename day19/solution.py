@@ -1,9 +1,8 @@
 import functools
-import itertools
 import operator
 import re
 from dataclasses import dataclass
-from typing import Literal
+from typing import Iterable, Literal
 
 ParamName = Literal["x", "m", "a", "s"]
 Op = Literal["lt", "gt"]
@@ -150,10 +149,8 @@ def accepted_bounds(
     workflows: dict[str, Workflow],
     start: str,
     initial_bounds: Bounds,
-) -> list[Bounds]:
-    result: list[Bounds] = []
-    workflow = workflows[start]
-    for rule in workflow.rules:
+) -> Iterable[Bounds]:
+    for rule in workflows[start].rules:
         if rule_condition := rule.condition:
             matching = with_condition(initial_bounds, rule_condition)
             kept: Bounds | None = with_condition(initial_bounds, rule_condition.inverted())
@@ -163,22 +160,17 @@ def accepted_bounds(
 
         match rule.target:
             case "A":
-                result.append(matching)
+                yield matching
             case "R":
                 pass
             case target_workflow_name:
-                result.extend(
-                    accepted_bounds(
-                        workflows,
-                        start=target_workflow_name,
-                        initial_bounds=matching,
-                    )
+                yield from accepted_bounds(
+                    workflows,
+                    start=target_workflow_name,
+                    initial_bounds=matching,
                 )
         if kept is None:
             break
-        else:
-            initial_bounds = kept
-    return result
 
 
 def part_2(inp: str, debug: bool):

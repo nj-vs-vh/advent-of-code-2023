@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # calculating "scores"
     both_part_measurements = [p1 + p2 for _, (p1, p2) in days_perf]
     log_mean_both_parts = [math.log(bp.mean) for bp in both_part_measurements]
-    center_logtime = np.mean(log_mean_both_parts)
+    center_logtime = float(np.mean(log_mean_both_parts))
     min_logtime = min(log_mean_both_parts)
     max_logtime = max(log_mean_both_parts)
     scores = [
