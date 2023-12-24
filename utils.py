@@ -1,10 +1,27 @@
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, cast
 
 T = TypeVar("T")
 
+Map = list[list[T]]
+Coords = tuple[int, int]
+
+
+def parse_simple_map(inp: str, char_parser: Callable[[str], T] | None = None) -> Map[T]:
+    res = [
+        [
+            char_parser(char)
+            if char_parser
+            else cast(T, char)  # NOTE: default to no validation here
+            for char in line
+        ]
+        for line in inp.splitlines()
+    ]
+    assert len({len(row) for row in res}) == 1, "Non-rectangular map detected!"
+    return res
+
 
 def format_map(
-    map: list[list[T]],
+    map: Map[T],
     formatter: Callable[[T], str] = lambda t: str(t) if t is not None else " ",
     cell_width: int | None = None,
     rulers_each: int | None = None,
@@ -54,15 +71,15 @@ def format_map(
     return "\n".join(lines)
 
 
-def dimensions(map: list[list[Any]]) -> tuple[int, int]:
+def dimensions(map: Map) -> Coords:
     return len(map), len(map[0])
 
 
-def init_map(init_value: T, height: int, width: int) -> list[list[T]]:
+def init_map(init_value: T, height: int, width: int) -> Map[T]:
     return [[init_value for _ in range(width)] for _ in range(height)]
 
 
-def init_map_like(init_value: T, other: list[list[Any]]) -> list[list[T]]:
+def init_map_like(init_value: T, other: list[list[Any]]) -> Map[T]:
     return init_map(init_value, *dimensions(other))
 
 
@@ -70,20 +87,45 @@ DefaultT = TypeVar("DefaultT")
 
 
 def sparse_to_dense_map(
-    coord_values: dict[tuple[int, int], T],
+    coord_values: dict[Coords, T],
     default: DefaultT,
-) -> tuple[list[list[T | DefaultT]], tuple[int, int]]:
-    i_min = min(i for i, _ in coord_values.keys())
-    i_max = max(i for i, _ in coord_values.keys())
-    j_min = min(j for _, j in coord_values.keys())
-    j_max = max(j for _, j in coord_values.keys())
+    top_left_corner: Coords | None = None,
+    bottom_right_corner: Coords | None = None,
+) -> tuple[Map[T | DefaultT], tuple[int, int]]:
+    if top_left_corner is None:
+        i_min = min(i for i, _ in coord_values.keys())
+        j_min = min(j for _, j in coord_values.keys())
+    else:
+        i_min, j_min = top_left_corner
+    if bottom_right_corner is None:
+        i_max = max(i for i, _ in coord_values.keys())
+        j_max = max(j for _, j in coord_values.keys())
+    else:
+        i_max, j_max = bottom_right_corner
 
-    map_: list[list[T | DefaultT]] = init_map(
+    map_: Map[T | DefaultT] = init_map(
         default,
         height=i_max - i_min + 1,
         width=j_max - j_min + 1,
     )
     for (i, j), value in coord_values.items():
-        map_[i - i_min][j - j_min] = value
+        if i_min <= i <= i_max and j_min <= j <= j_max:
+            map_[i - i_min][j - j_min] = value
 
     return map_, (i_min, j_min)
+
+
+def _choose_first_truthy(values: tuple[T, ...]) -> T:
+    for value in values:
+        if value:
+            return value
+    else:
+        return values[-1]
+
+
+def union_maps(
+    *maps: Map[T],
+    choose: Callable[[tuple[T, ...]], T] = _choose_first_truthy,
+) -> Map[T]:
+    assert len({dimensions(map) for map in maps}) == 1
+    return [[choose(cells) for cells in zip(*map_rows)] for map_rows in zip(*maps)]

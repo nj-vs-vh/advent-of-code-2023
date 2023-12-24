@@ -92,7 +92,9 @@ def fall(blocks: list[Block]) -> None:
         potential_supports = [
             block
             for block in blocks[:i]
-            if block.z.end <= falling.z.start and falling.x.overlap(block.x) and falling.y.overlap(block.y)
+            if block.z.end <= falling.z.start
+            and falling.x.overlap(block.x)
+            and falling.y.overlap(block.y)
         ]
         new_z_start = max(b.z.end for b in potential_supports) if potential_supports else 1
         fall_distance = falling.z.start - new_z_start
