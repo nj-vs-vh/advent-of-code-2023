@@ -1,6 +1,9 @@
+import itertools
 import math
 import os
+import random
 import re
+import time
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,13 +24,23 @@ def suppress_output():
 class PerfMeasurement:
     t_sample: list[float]
 
+    def __post_init__(self):
+        print(
+            f"Measurement created: {len(self.t_sample)} samples, mean = {np.mean(self.t_sample)}, std = {np.std(self.t_sample)}"
+        )
+
     @property
     def mean(self) -> float:
         return float(np.mean(self.t_sample))
 
     def __add__(self, other: "PerfMeasurement") -> "PerfMeasurement":
-        assert len(self.t_sample) == len(other.t_sample)
-        return PerfMeasurement([t1 + t2 for t1, t2 in zip(self.t_sample, other.t_sample)])
+        target_size = max(len(self.t_sample), len(other.t_sample))
+        return PerfMeasurement(
+            t_sample=random.choices(
+                [t1 + t2 for t1, t2 in itertools.product(self.t_sample, other.t_sample)],
+                k=target_size,
+            )
+        )
 
     def __str__(self) -> str:
         std = np.std(self.t_sample)
@@ -43,13 +56,20 @@ if __name__ == "__main__":
             print(f"Measuring day {day}...")
             sample_1: list[float] = []
             sample_2: list[float] = []
-            with suppress_output():
-                for _ in range(30):
+            measure_start = time.time()
+            for _ in range(30):
+                with suppress_output():
                     t1, t2 = run_day(day, input_="input.txt", parts_to_run=[1, 2], debug=False)
-                    assert t1, "time for pt 1 is not measured"
-                    assert t2, "time for pt 2 is not measured"
-                    sample_1.append(t1)
-                    sample_2.append(t2)
+                if t1 is None:
+                    print(f"Error measuring day {day} pt 1, skipping realization")
+                    continue
+                if t2 is None:
+                    print(f"Error measuring day {day} pt 2, skipping realization")
+                    continue
+                sample_1.append(t1)
+                sample_2.append(t2)
+                if len(sample_1) > 2 and len(sample_2) > 2 and time.time() - measure_start > 60:
+                    break
             days_perf.append(
                 (
                     day,

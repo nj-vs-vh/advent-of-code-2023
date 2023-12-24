@@ -129,6 +129,7 @@ def part_1(inp: str, debug: bool):
 
 
 def part_2(inp: str, debug: bool):
+    Block.causes_to_fall.cache_clear()
     blocks = [Block.parse(line, str(i)) for i, line in enumerate(inp.splitlines())]
     fall(blocks)
     caused_to_fall_by: dict[Block, int] = collections.defaultdict(lambda: 0)
