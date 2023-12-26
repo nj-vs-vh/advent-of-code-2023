@@ -44,13 +44,13 @@ def hikes_graph(
     follow_slopes: bool,
 ) -> list[GraphNode]:
     height, width = dimensions(map)
-    direct_adjascent: dict[Coords, list[Coords]] = dict()
+    direct_adjacent: dict[Coords, list[Coords]] = dict()
     to_check: set[Coords] = {start}
     while to_check:
         next_to_check: set[Coords] = set()
         for current in to_check:
             i, j = current
-            adjascent_to_current = [
+            adjacent_to_current = [
                 (i_new, j_new)
                 for (di, dj, i_new, j_new) in (
                     (-1, 0, i - 1, j),
@@ -68,12 +68,12 @@ def hikes_graph(
                     )
                 )
             ]
-            direct_adjascent[current] = adjascent_to_current
-            next_to_check.update(c for c in adjascent_to_current if c not in direct_adjascent)
+            direct_adjacent[current] = adjacent_to_current
+            next_to_check.update(c for c in adjacent_to_current if c not in direct_adjacent)
         to_check = next_to_check
 
     graph_node_coords = {
-        coords for coords, adjascent in direct_adjascent.items() if len(adjascent) > 2
+        coords for coords, adjacent in direct_adjacent.items() if len(adjacent) > 2
     }
     graph_node_coords.add(start)
     graph_node_coords.add(target)
@@ -81,7 +81,7 @@ def hikes_graph(
     for node_coords in graph_node_coords:
         node = GraphNode(node_coords, [])
         graph_nodes.append(node)
-        for path_start in direct_adjascent[node_coords]:
+        for path_start in direct_adjacent[node_coords]:
             path_coords = path_start
             path = []
             while True:
@@ -92,7 +92,7 @@ def hikes_graph(
                 else:
                     prev_path_coords = path[-2] if len(path) > 1 else node_coords
                     next_path_coords = [
-                        c for c in direct_adjascent[path_coords] if c != prev_path_coords
+                        c for c in direct_adjacent[path_coords] if c != prev_path_coords
                     ]
                     if not next_path_coords:
                         break  # dead end
@@ -117,12 +117,12 @@ def longest_path_length(
         _visited = _visited.copy() if _visited else set()
         _visited.add(from_)
         path_lengths: list[int] = []
-        for adjascent, path in nodes[from_].connections:
-            if adjascent in _visited:
+        for adjacent, path in nodes[from_].connections:
+            if adjacent in _visited:
                 continue
             subpath_length = longest_path_length(
                 nodes,
-                from_=adjascent,
+                from_=adjacent,
                 to=to,
                 _visited=_visited,
             )

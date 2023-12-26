@@ -94,16 +94,16 @@ def part_2(inp: str, debug: bool):
     for i, row in enumerate(schematic):
         for j, item in enumerate(row):
             if item == "*":
-                adjascent_parts: set[Number] = set()
+                adjacent_parts: set[Number] = set()
                 for i_n, j_n in neighborhood(i, j, width, height):
                     neighbor = schematic[i_n][j_n]
                     if isinstance(neighbor, Number):
                         if debug:
                             print("Found part ", neighbor)
-                        adjascent_parts.add(neighbor)
-                if len(adjascent_parts) == 2:
+                        adjacent_parts.add(neighbor)
+                if len(adjacent_parts) == 2:
                     total_gear_ratio += functools.reduce(
-                        operator.mul, (p.value for p in adjascent_parts), 1
+                        operator.mul, (p.value for p in adjacent_parts), 1
                     )
 
     print(total_gear_ratio)
