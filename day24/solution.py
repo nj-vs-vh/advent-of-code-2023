@@ -1,3 +1,4 @@
+import random
 import re
 from dataclasses import dataclass
 from typing import ClassVar
@@ -79,40 +80,54 @@ def part_1(inp: str, debug: bool):
 def part_2(inp: str, debug: bool):
     hailstones = [Hailstone.parse(line) for line in inp.splitlines()]
 
-    h1 = hailstones[0]
-    h2 = hailstones[1]
-    h3 = hailstones[2]
-    rhs = np.array([h1.r.x, h1.r.y, h1.r.z, h2.r.x, h2.r.y, h2.r.z, h3.r.x, h3.r.y, h3.r.z]).T
-    for V1 in range(-10, 10):
-        for V2 in range(-10, 10):
-            for V3 in range(-10, 10):
-                matrix = np.array(
-                    [
-                        [1, 0, 0, V1, -h1.v.x, 0, 0, 0, 0],
-                        [0, 1, 0, V2, -h1.v.y, 0, 0, 0, 0],
-                        [0, 0, 1, V3, -h1.v.z, 0, 0, 0, 0],
-                        [1, 0, 0, 0, 0, V1, -h2.v.x, 0, 0],
-                        [0, 1, 0, 0, 0, V2, -h2.v.y, 0, 0],
-                        [0, 0, 1, 0, 0, V3, -h2.v.z, 0, 0],
-                        [1, 0, 0, 0, 0, 0, 0, V1, -h3.v.x],
-                        [0, 1, 0, 0, 0, 0, 0, V2, -h3.v.y],
-                        [0, 0, 1, 0, 0, 0, 0, V3, -h3.v.z],
-                    ]
-                )
-                try:
-                    print(matrix)
-                    assert np.linalg.matrix_rank(matrix) == 9
-                    solution = np.linalg.solve(matrix, rhs)
-                    # inverse = np.linalg.inv(matrix)
-                    # solution = inverse @ rhs
-                    assert all(t > 0 for t in solution[3:])
-                    R1, R2, R3 = solution[0], solution[1], solution[2]
-                    print(V1, V2, V3)
-                    print(int(R1) + int(R2) + int(R3))
-                    for Ra in (R1, R2, R3):
-                        assert int(Ra) == Ra
-                    print(rhs)
-                    print(matrix @ solution)
-                    return
-                except (np.linalg.LinAlgError, AssertionError):
-                    pass
+    h1 = random.choice(hailstones)
+    h2 = random.choice(hailstones)
+    V_range = 300
+    rhs = np.array([h1.r.x, h1.r.y, h2.r.x, h2.r.y]).T
+    for V1 in range(-V_range, V_range + 1):
+        for V2 in range(-V_range, V_range + 1):
+            xy_matrix = np.array(
+                [
+                    [1, 0, V1 - h1.v.x, 0],
+                    [0, 1, V2 - h1.v.y, 0],
+                    [1, 0, 0, V1 - h2.v.x],
+                    [0, 1, 0, V2 - h2.v.y],
+                ]
+            )
+            try:
+                assert np.linalg.matrix_rank(xy_matrix) == 4, "matrix is not full rank"
+                xy_solution = np.linalg.inv(xy_matrix) @ rhs
+                R1, R2, t1, t2 = xy_solution[0], xy_solution[1], xy_solution[2], xy_solution[3]
+                assert t1 > 0 and t2 > 0, "negative times found"
+                for Ra in (R1, R2):
+                    assert int(Ra) == Ra, "non-integer xy solution"
+                V3 = (h1.r.z + h1.v.z * t1 - h2.r.z - h2.v.z * t2) / (t1 - t2)
+                R3 = h1.r.z + h1.v.z * t1 - V3 * t1
+                assert int(R3) == R3, "non-integer R3"
+                R1 = int(R1)
+                R2 = int(R2)
+                R3 = int(R3)
+                V1 = int(V1)
+                V2 = int(V2)
+                V3 = int(V3)
+                print(R1, R2, R3, V1, V2, V3)
+                for h in hailstones:
+                    t = None
+                    for num, den in (
+                        ((h.r.x - R1), (V1 - h.v.x)),
+                        ((h.r.y - R2), (V2 - h.v.y)),
+                        ((h.r.z - R3), (V3 - h.v.z)),
+                    ):
+                        if den != 0:
+                            ta = num / den
+                            assert ta > 0
+                            if t is None:
+                                t = ta
+                            else:
+                                assert np.isclose(t, ta)
+                print(R1, R2, R3, V1, V2, V3)
+                print(R1 + R2 + R3)
+                return
+            except (np.linalg.LinAlgError, AssertionError, ZeroDivisionError) as e:
+                # print(repr(e))
+                pass
