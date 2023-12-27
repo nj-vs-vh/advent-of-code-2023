@@ -63,6 +63,7 @@ All days | 5420.0 ± 90.0 | 31600.0 ± 100.0 | 37300.0 ± 200.0 |
 <summary>
 Reference times at the and of AoC (generated on 26.12.2023)
 </summary>
+
 <!-- reference table start -->
 **Day** | **Part 1**, msec | **Part 2**, msec | **Total**, msec | **Relative score**
 ---: | :---: | :---: | :---: | ---
@@ -93,4 +94,5 @@ Reference times at the and of AoC (generated on 26.12.2023)
 25 | 4180.0 ± 90.0 | 0.0003 ± 0.0005 | 4160.0 ± 90.0 | 🐢🐢🐢🐢🐢🐢🐢🐢
 All days | 5420.0 ± 90.0 | 31600.0 ± 100.0 | 37300.0 ± 200.0 | 
 <!-- reference table end -->
+
 </details>
