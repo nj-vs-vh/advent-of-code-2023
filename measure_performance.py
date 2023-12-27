@@ -26,12 +26,17 @@ class PerfMeasurement:
 
     def __post_init__(self):
         print(
-            f"Measurement created: {len(self.t_sample)} samples, mean = {np.mean(self.t_sample)}, std = {np.std(self.t_sample)}"
+            f"Measurement created: {len(self.t_sample)} samples, "
+            + f"mean = {np.mean(self.t_sample)}, std = {np.std(self.t_sample)}"
         )
 
     @property
     def mean(self) -> float:
         return float(np.mean(self.t_sample))
+
+    @property
+    def median(self) -> float:
+        return float(np.median(self.t_sample))
 
     def __add__(self, other: "PerfMeasurement") -> "PerfMeasurement":
         target_size = max(len(self.t_sample), len(other.t_sample))
@@ -43,10 +48,43 @@ class PerfMeasurement:
         )
 
     def __str__(self) -> str:
-        std = np.std(self.t_sample)
-        std_log10 = math.log10(std)
-        ndigits = -math.floor(std_log10)
-        return f"{round(self.mean, ndigits)} ± {round(std, ndigits)}"
+        median = self.median
+        lower_perc, upper_perc = np.quantile(self.t_sample, [0.32, 0.68])
+        return str(
+            PerfMeasurementStat(
+                median=self.median,
+                upper_68_width=upper_perc - median,
+                lower_68_width=median - lower_perc,
+            )
+        )
+
+
+@dataclass
+class PerfMeasurementStat:
+    median: float
+    upper_68_width: float
+    lower_68_width: float
+
+    def __str__(self) -> str:
+        def calc_ndigits(q: float) -> int:
+            return -math.floor(math.log10(q))
+
+        ndigits = max(
+            calc_ndigits(self.lower_68_width) if self.lower_68_width > 0 else 0,
+            calc_ndigits(self.upper_68_width) if self.upper_68_width > 0 else 0,
+        )
+        return (
+            f"${round(self.median, ndigits)}~"
+            + f"^{{+{round(self.upper_68_width, ndigits)}}}"
+            + f"_{{-{round(self.lower_68_width, ndigits)}}}$"
+        )
+
+
+def re_between(prefix: str, suffix: str) -> re.Pattern:
+    return re.compile(
+        rf"(?<={re.escape(prefix)})(.*)(?={re.escape(suffix)})",
+        flags=re.MULTILINE | re.DOTALL,
+    )
 
 
 if __name__ == "__main__":
@@ -98,6 +136,17 @@ if __name__ == "__main__":
     ]
 
     # results formatting
+    readme_file = Path(__file__).parent / "README.md"
+    readme = readme_file.read_text()
+    reference_table = re_between(
+        "<!-- reference table start -->", "<!-- reference table end -->"
+    ).findall(readme)
+    if reference_table:
+        print("Reference table found")
+        assert isinstance(reference_table[0], str)
+        reference_table_lines = reference_table[0].splitlines()[2:]
+        # TBD calculate improvements
+
     headers = [
         "**Day**",
         "**Part 1**, msec",
@@ -133,19 +182,9 @@ if __name__ == "__main__":
         ["All days", str(total_part_1), str(total_part_2), str(total_both_parts), ""]
     )
 
-    readme_file = Path(__file__).parent / "README.md"
-    readme = readme_file.read_text()
-    readme = re.sub(
-        (
-            "(?<="
-            + re.escape("<!-- generated table start -->")
-            + ")(.*)(?="
-            + re.escape("<!-- generated table end -->")
-            + ")"
-        ),
+    readme = re_between("<!-- generated table start -->", "<!-- generated table end -->").sub(
         "\n" + "\n".join([" | ".join(row) for row in markdown_table]) + "\n",
         readme,
-        flags=re.MULTILINE | re.DOTALL,
     )
     readme_file.write_text(readme)
     print("Done")
