@@ -1,10 +1,7 @@
-import collections
-import itertools
-import sys
 from dataclasses import dataclass
-from typing import Iterable, Literal, NamedTuple, cast
+from typing import Any, Literal
 
-from utils import Map, dimensions, format_map, parse_simple_map, sparse_to_dense_map
+from utils import Map, dimensions, format_map, parse_simple_map
 
 Forest = Literal["#"]
 Path = Literal["."]
@@ -33,8 +30,12 @@ Path = list[Coords]
 
 @dataclass
 class GraphNode:
+    id: int
     coords: Coords
     connections: list[tuple[Coords, Path]]
+
+
+Graph = dict[tuple[int, Coords], list[tuple[Coords, Path]]]
 
 
 def hikes_graph(
@@ -42,8 +43,10 @@ def hikes_graph(
     start: Coords,
     target: Coords,
     follow_slopes: bool,
-) -> list[GraphNode]:
+) -> dict[Coords, GraphNode]:
     height, width = dimensions(map)
+
+    # first, creating "direct graph", tracking what cells are accesible from each cell
     direct_adjacent: dict[Coords, list[Coords]] = dict()
     to_check: set[Coords] = {start}
     while to_check:
@@ -78,8 +81,8 @@ def hikes_graph(
     graph_node_coords.add(start)
     graph_node_coords.add(target)
     graph_nodes: list[GraphNode] = []
-    for node_coords in graph_node_coords:
-        node = GraphNode(node_coords, [])
+    for node_id, node_coords in enumerate(graph_node_coords):
+        node = GraphNode(id=node_id, coords=node_coords, connections=[])
         graph_nodes.append(node)
         for path_start in direct_adjacent[node_coords]:
             path_coords = path_start
@@ -102,34 +105,33 @@ def hikes_graph(
                         ), f"Ambiguous next path coords: {next_path_coords!r}"
                         path_coords = next(iter(next_path_coords))
 
-    return graph_nodes
+    return {gn.coords: gn for gn in graph_nodes}
 
 
 def longest_path_length(
     nodes: dict[Coords, GraphNode],
     from_: Coords,
     to: Coords,
-    _visited: set[Coords] | None = None,
+    visited_bitset: int = 0,
 ) -> int | None:
     if from_ == to:
         return 0
-    else:
-        _visited = _visited.copy() if _visited else set()
-        _visited.add(from_)
-        path_lengths: list[int] = []
-        for adjacent, path in nodes[from_].connections:
-            if adjacent in _visited:
-                continue
-            subpath_length = longest_path_length(
-                nodes,
-                from_=adjacent,
-                to=to,
-                _visited=_visited,
-            )
-            if subpath_length is not None:
-                path_lengths.append(len(path) + subpath_length)
-
-        return max(path_lengths) if path_lengths else None
+    max_path_length: int | None = None
+    for adjacent, path in nodes[from_].connections:
+        visited_adjacent = 1 << nodes[adjacent].id
+        if visited_bitset & visited_adjacent:
+            continue
+        subpath_length = longest_path_length(
+            nodes,
+            from_=adjacent,
+            to=to,
+            visited_bitset=visited_bitset | (1 << nodes[adjacent].id),
+        )
+        if subpath_length is not None:
+            path_length = len(path) + subpath_length
+            if max_path_length is None or path_length > max_path_length:
+                max_path_length = path_length
+    return max_path_length
 
 
 def find_start_and_target(map: Map[Cell]) -> tuple[Coords, Coords]:
@@ -147,12 +149,12 @@ def part_1(inp: str, debug: bool):
         print(format_map(map, cell_width=2))
 
     start, target = find_start_and_target(map)
-    nodes = {n.coords: n for n in hikes_graph(map, start, target, follow_slopes=True)}
-    print(longest_path_length(nodes, from_=start, to=target))
+    graph = hikes_graph(map, start, target, follow_slopes=True)
+    print(longest_path_length(graph, from_=start, to=target))
 
 
 def part_2(inp: str, debug: bool):
     map: Map[Cell] = parse_simple_map(inp)
     start, target = find_start_and_target(map)
-    nodes = {n.coords: n for n in hikes_graph(map, start, target, follow_slopes=False)}
-    print(longest_path_length(nodes, start, target))
+    graph = hikes_graph(map, start, target, follow_slopes=False)
+    print(longest_path_length(graph, start, target))

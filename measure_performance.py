@@ -51,32 +51,42 @@ class PerfMeasurement:
         median = self.median
         lower_perc, upper_perc = np.quantile(self.t_sample, [0.32, 0.68])
         return str(
-            PerfMeasurementStat(
+            PerfMeasurementStats(
                 median=self.median,
-                upper_68_width=upper_perc - median,
-                lower_68_width=median - lower_perc,
+                upper_width=upper_perc - median,
+                lower_width=median - lower_perc,
             )
         )
 
 
 @dataclass
-class PerfMeasurementStat:
+class PerfMeasurementStats:
     median: float
-    upper_68_width: float
-    lower_68_width: float
+    upper_width: float
+    lower_width: float
+
+    @classmethod
+    def parse(cls, string: str) -> "PerfMeasurementStats":
+        m = re.match(r"\$([\d.]+)[\s~]*\^\{\+([\d.]+)\}_\{\-([\d.]+)\}\$", string)
+        assert m, string
+        return PerfMeasurementStats(
+            median=float(m.group(1)),
+            upper_width=float(m.group(2)),
+            lower_width=float(m.group(3)),
+        )
 
     def __str__(self) -> str:
         def calc_ndigits(q: float) -> int:
             return -math.floor(math.log10(q))
 
         ndigits = max(
-            calc_ndigits(self.lower_68_width) if self.lower_68_width > 0 else 0,
-            calc_ndigits(self.upper_68_width) if self.upper_68_width > 0 else 0,
+            calc_ndigits(self.lower_width) if self.lower_width > 0 else 0,
+            calc_ndigits(self.upper_width) if self.upper_width > 0 else 0,
         )
         return (
             f"${round(self.median, ndigits)}~"
-            + f"^{{+{round(self.upper_68_width, ndigits)}}}"
-            + f"_{{-{round(self.lower_68_width, ndigits)}}}$"
+            + f"^{{+{round(self.upper_width, ndigits)}}}"
+            + f"_{{-{round(self.lower_width, ndigits)}}}$"
         )
 
 
@@ -144,8 +154,11 @@ if __name__ == "__main__":
     if reference_table:
         print("Reference table found")
         assert isinstance(reference_table[0], str)
-        reference_table_lines = reference_table[0].splitlines()[2:]
-        # TBD calculate improvements
+        reference_table_lines = reference_table[0].strip().splitlines()[2:]
+        reference_measurements = [
+            PerfMeasurementStats.parse(line.split(" | ")[3].strip())
+            for line in reference_table_lines
+        ]
 
     headers = [
         "**Day**",
