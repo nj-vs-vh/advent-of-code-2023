@@ -1,3 +1,9 @@
+# to let solution import stuff from pernt module
+import pathlib
+import sys
+
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+
 import cProfile
 import pstats
 from pathlib import Path
