@@ -1,17 +1,11 @@
 import itertools
 from typing import Literal
 
-from utils import format_map
+from utils import dimensions, format_map, parse_simple_map
 
 Mirror = Literal["/", "\\"]
 BeamSplitter = Literal["|", "-"]
 Contraption = list[list[Mirror | BeamSplitter | None]]
-
-
-def parse_contraption(inp: str) -> Contraption:
-    return [[char if char != "." else None for char in line] for line in inp.splitlines()]  # type: ignore
-
-
 LightDirectionCode = Literal[0, 1, 2, 4, 8]
 
 
@@ -39,26 +33,19 @@ def delta(dir: LightDirectionCode) -> tuple[int, int]:
 def reflect_from(dir: LightDirectionCode, mirror: Mirror) -> "LightDirectionCode":
     match mirror:
         case "\\":
-            match dir:
-                case LightDirection.Up:
-                    return LightDirection.Left
-                case LightDirection.Left:
-                    return LightDirection.Up
-                case LightDirection.Down:
-                    return LightDirection.Right
-                case LightDirection.Right:
-                    return LightDirection.Down
+            return {  # type: ignore
+                LightDirection.Up: LightDirection.Left,
+                LightDirection.Left: LightDirection.Up,
+                LightDirection.Down: LightDirection.Right,
+                LightDirection.Right: LightDirection.Down,
+            }[dir]
         case "/":
-            match dir:
-                case LightDirection.Up:
-                    return LightDirection.Right
-                case LightDirection.Right:
-                    return LightDirection.Up
-                case LightDirection.Down:
-                    return LightDirection.Left
-                case LightDirection.Left:
-                    return LightDirection.Down
-    raise RuntimeError()
+            return {  # type: ignore
+                LightDirection.Up: LightDirection.Right,
+                LightDirection.Left: LightDirection.Down,
+                LightDirection.Down: LightDirection.Left,
+                LightDirection.Right: LightDirection.Up,
+            }[dir]
 
 
 LightMap = list[list[LightDirectionCode]]
@@ -73,11 +60,8 @@ def fill_lightmap(
     i, j = start
     di, dj = delta(direction)
     energization = 0
-    while (
-        0 <= i < len(contraption)
-        and 0 <= j < len(contraption[i])
-        and lightmap[i][j] & direction == 0
-    ):
+    height, width = dimensions(contraption)
+    while 0 <= i < height and 0 <= j < width and lightmap[i][j] & direction == 0:
         if lightmap[i][j] == 0:
             energization += 1
         lightmap[i][j] |= direction  # type: ignore
@@ -115,7 +99,7 @@ def empty_lightmap(contraption: Contraption) -> LightMap:
 
 
 def part_1(inp: str, debug: bool):
-    contraption = parse_contraption(inp)
+    contraption: Contraption = parse_simple_map(inp)
     if debug:
         print(format_map(contraption, lambda p: p if p is not None else " "))
     lightmap = empty_lightmap(contraption)
@@ -131,9 +115,8 @@ def part_1(inp: str, debug: bool):
 
 
 def part_2(inp: str, debug: bool):
-    contraption = parse_contraption(inp)
-    height = len(contraption)
-    width = len(contraption[1])
+    contraption: Contraption = parse_simple_map(inp)
+    height, width = dimensions(contraption)
     results: list[int] = []
     for i, j, direction in itertools.chain(
         [(i, 0, LightDirection.Right) for i in range(height)],
