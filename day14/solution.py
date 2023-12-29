@@ -1,45 +1,44 @@
 from dataclasses import dataclass
 from typing import Generic, Iterable, TypeVar
 
+from utils import Map, dimensions, format_map
+
 T = TypeVar("T")
 
 
 @dataclass
 class Array2D(Generic[T]):
-    values: list[T]
-    width: int
-    height: int
+    values: Map[T]
 
     def __post_init__(self):
-        # 4 x (width*height) array, stores linear indices for each rotation
-        self.rotated_linear_indices = []
+        self.height, self.width = dimensions(self.values)
+        self.rotated_indices: list[Map[tuple[int, int]]] = []
         for rot_cw in range(4):
-            rotated_linear_indices = []
-            for i, j, _ in self.iter_values():
-                width, height = self.width, self.height
-                for _ in range(rot_cw % 4):
-                    i, j = width - j - 1, i
-                    width, height = height, width
-                rotated_linear_indices.append(i * width + j)
-            self.rotated_linear_indices.append(rotated_linear_indices)
+            rotated_indices: Map[tuple[int, int]] = []
+            self.rotated_indices.append(rotated_indices)
+            for i in range(self.height):
+                row: list[tuple[int, int]] = []
+                rotated_indices.append(row)
+                for j in range(self.width):
+                    width, height = self.width, self.height
+                    i_rot, j_rot = i, j
+                    for _ in range(rot_cw % 4):
+                        i_rot, j_rot = width - j_rot - 1, i_rot
+                        width, height = height, width
+                    row.append((i_rot, j_rot))
 
     def iter_values(self) -> Iterable[tuple[int, int, T]]:
-        i, j = 0, 0
-        for value in self.values:
-            yield i, j, value
-            j += 1
-            if j == self.width:
-                i += 1
-                j = 0
-
-    def _linear_idx(self, i: int, j: int, rot_cw: int) -> int:
-        return self.rotated_linear_indices[rot_cw][i * self.width + j]
+        for i, row in enumerate(self.values):
+            for j, value in enumerate(row):
+                yield i, j, value
 
     def get(self, i: int, j: int, rot_cw: int) -> T:
-        return self.values[self._linear_idx(i, j, rot_cw)]
+        i, j = self.rotated_indices[rot_cw][i][j]
+        return self.values[i][j]
 
     def set(self, i: int, j: int, rot_cw: int, value: T) -> None:
-        self.values[self._linear_idx(i, j, rot_cw)] = value
+        i, j = self.rotated_indices[rot_cw][i][j]
+        self.values[i][j] = value
 
 
 @dataclass
@@ -48,7 +47,7 @@ class State:
     rolling: Array2D[bool]
 
     def rolling_rocks_hash(self) -> int:
-        return hash(tuple(self.rolling.values))
+        return hash(tuple((i, j) for i, j, value in self.rolling.iter_values() if value))
 
     def __str__(self) -> str:
         lines: list[str] = []
@@ -91,8 +90,8 @@ def parse_initial_state(inp: str) -> State:
     lines = inp.splitlines()
     width = len(lines[0])
     height = len(lines)
-    static = Array2D([False] * width * height, width, height)
-    rolling = Array2D([False] * width * height, width, height)
+    static = Array2D([[False] * width for _ in range(height)])
+    rolling = Array2D([[False] * width for _ in range(height)])
 
     for i, line in enumerate(lines):
         for j, char in enumerate(line):
@@ -120,16 +119,18 @@ def part_2(inp: str, debug: bool):
     for cycle_idx in range(1, total_cycles + 1):
         for rot in range(4):
             state.tilt(rot)
+
         if debug:
             print(state)
             print()
 
-        if loop_start_cycle_idx := state_history.get(state.rolling_rocks_hash()):
+        state_hash = state.rolling_rocks_hash()
+        if loop_start_cycle_idx := state_history.get(state_hash):
             print(f"Found loop {loop_start_cycle_idx} - {cycle_idx}!")
             loop_length = cycle_idx - loop_start_cycle_idx
             phase = (total_cycles - loop_start_cycle_idx) % loop_length
             print(load_history[loop_start_cycle_idx + phase - 1])
             break
         else:
-            state_history[state.rolling_rocks_hash()] = cycle_idx
+            state_history[state_hash] = cycle_idx
             load_history.append(state.north_support_load())
