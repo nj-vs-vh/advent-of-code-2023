@@ -1,6 +1,10 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent))
+
 import cProfile
 import pstats
-from pathlib import Path
 
 from solution import part_1, part_2
 

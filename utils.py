@@ -79,6 +79,10 @@ def init_map(init_value: T, height: int, width: int) -> Map[T]:
     return [[init_value for _ in range(width)] for _ in range(height)]
 
 
+def transposed(map: Map[T]) -> Map[T]:
+    return [list(c) for c in zip(*map)]
+
+
 def init_map_like(init_value: T, other: list[list[Any]]) -> Map[T]:
     return init_map(init_value, *dimensions(other))
 

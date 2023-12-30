@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import Generic, Iterable, TypeVar
 
-from utils import Map, dimensions, format_map
+from utils import Map, dimensions
 
 T = TypeVar("T")
 
 
 @dataclass
-class Array2D(Generic[T]):
+class Rotatable2DArray(Generic[T]):
     values: Map[T]
 
     def __post_init__(self):
@@ -43,8 +43,8 @@ class Array2D(Generic[T]):
 
 @dataclass
 class State:
-    static: Array2D[bool]
-    rolling: Array2D[bool]
+    static: Rotatable2DArray[bool]
+    rolling: Rotatable2DArray[bool]
 
     def rolling_rocks_hash(self) -> int:
         return hash(tuple((i, j) for i, j, value in self.rolling.iter_values() if value))
@@ -79,19 +79,18 @@ class State:
                     self.rolling.set(i, j, rot_cw, False)
 
     def north_support_load(self) -> int:
-        result = 0
-        for i, _, has_rolling_rock in self.rolling.iter_values():
-            if has_rolling_rock:
-                result += self.rolling.height - i
-        return result
+        height = self.rolling.height
+        return sum(
+            height - i for i, _, has_rolling_rock in self.rolling.iter_values() if has_rolling_rock
+        )
 
 
 def parse_initial_state(inp: str) -> State:
     lines = inp.splitlines()
     width = len(lines[0])
     height = len(lines)
-    static = Array2D([[False] * width for _ in range(height)])
-    rolling = Array2D([[False] * width for _ in range(height)])
+    static = Rotatable2DArray([[False] * width for _ in range(height)])
+    rolling = Rotatable2DArray([[False] * width for _ in range(height)])
 
     for i, line in enumerate(lines):
         for j, char in enumerate(line):
