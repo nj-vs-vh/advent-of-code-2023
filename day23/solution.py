@@ -1,5 +1,6 @@
+import collections
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
 from utils import Map, dimensions, format_map, parse_simple_map
 
@@ -32,7 +33,7 @@ Path = list[Coords]
 class GraphNode:
     id: int
     coords: Coords
-    connections: list[tuple[Coords, Path]]
+    connections: list[tuple[Coords, int, Path]]
 
 
 Graph = dict[tuple[int, Coords], list[tuple[Coords, Path]]]
@@ -90,7 +91,7 @@ def hikes_graph(
             while True:
                 path.append(path_coords)
                 if path_coords in graph_node_coords:
-                    node.connections.append((path_coords, path))
+                    node.connections.append((path_coords, len(path), path))
                     break
                 else:
                     prev_path_coords = path[-2] if len(path) > 1 else node_coords
@@ -109,15 +110,12 @@ def hikes_graph(
 
 
 def longest_path_length(
-    nodes: dict[Coords, GraphNode],
-    from_: Coords,
-    to: Coords,
-    visited_bitset: int = 0,
+    nodes: dict[Coords, GraphNode], from_: Coords, to: Coords, visited_bitset: int = 0
 ) -> int | None:
     if from_ == to:
         return 0
     max_path_length: int | None = None
-    for adjacent, path in nodes[from_].connections:
+    for adjacent, path_len, _ in nodes[from_].connections:
         visited_adjacent = 1 << nodes[adjacent].id
         if visited_bitset & visited_adjacent:
             continue
@@ -128,9 +126,28 @@ def longest_path_length(
             visited_bitset=visited_bitset | (1 << nodes[adjacent].id),
         )
         if subpath_length is not None:
-            path_length = len(path) + subpath_length
+            path_length = path_len + subpath_length
             if max_path_length is None or path_length > max_path_length:
                 max_path_length = path_length
+    return max_path_length
+
+
+def longest_path_length_iterative(
+    nodes: dict[Coords, GraphNode], from_: Coords, to: Coords
+) -> int | None:
+    stack = collections.deque[tuple[Coords, int, int]]()
+    stack.append((from_, 0, 0))
+    max_path_length: int | None = None
+    while stack:
+        current, visited, path_len = stack.popleft()
+        if current == to and (max_path_length is None or path_len > max_path_length):
+            max_path_length = path_len
+        new_visited = visited | 1 << nodes[current].id
+        stack.extendleft(
+            (adjacent, new_visited, path_len + connection_len)
+            for adjacent, connection_len, _ in nodes[current].connections
+            if (new_visited & 1 << nodes[adjacent].id) == 0
+        )
     return max_path_length
 
 
