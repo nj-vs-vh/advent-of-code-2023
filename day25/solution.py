@@ -39,9 +39,11 @@ def to_edge(u: str, v: str) -> Edge:
     return (u, v) if u < v else (v, u)
 
 
-def calculate_edge_usage(graph: Graph) -> dict[Edge, int]:
+def calculate_edge_usage(graph: Graph, node_fraction: float = 1.0) -> dict[Edge, int]:
     res: dict[Edge, int] = collections.defaultdict(lambda: 0)
     for node in graph:
+        if random.random() > node_fraction:
+            continue
         for path in shortest_paths_from_node(graph, start=node):
             for u, v in itertools.pairwise(path):
                 res[to_edge(u, v)] += 1
@@ -70,10 +72,13 @@ def disconnected_subgraph_sizes(
 
 def part_1(inp: str, debug: bool):
     graph = parse_graph(inp)
-    edge_usage = calculate_edge_usage(graph)
+    edge_usage = calculate_edge_usage(
+        graph,
+        node_fraction=0.05,
+    )
     max_usage = max(edge_usage.values())
     min_usage = min(edge_usage.values())
-    assumed_cut_usage_frac = 0.5  # assume cut edges are whithin this frac of max usage
+    assumed_cut_usage_frac = 0.3  # assume cut edges are whithin this frac of max usage
     threshold_usage = min_usage + (max_usage - min_usage) * (1 - assumed_cut_usage_frac)
     cut_candidates = [e for e, usage in edge_usage.items() if usage > threshold_usage]
     for cut_1 in cut_candidates:
@@ -81,12 +86,12 @@ def part_1(inp: str, debug: bool):
             for cut_3 in cut_candidates:
                 if cut_1 == cut_2 or cut_2 == cut_3 or cut_1 == cut_2:
                     continue
+
                 if sizes := disconnected_subgraph_sizes(graph, (cut_1, cut_2, cut_3)):
-                    if any(size == 1 for size in sizes):
-                        continue
                     print("cuts:", cut_1, cut_2, cut_3)
                     print(sizes[0] * sizes[1])
                     return
+    raise RuntimeError("Cut not found!")
 
 
 def part_2(inp: str, debug: bool):
