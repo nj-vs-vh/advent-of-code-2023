@@ -16,14 +16,14 @@ class Range:
         return f"[{self.start}, {self.end})"
 
     def overlap(self, other: "Range") -> "Range | None":
-        start = max(self.start, other.start)
-        end = min(self.end, other.end)
+        start = self.start if self.start > other.start else other.start
+        end = self.end if self.end < other.end else other.end
         return Range(start, end) if end > start else None
 
 
 @dataclass
 class Block:
-    id_: str
+    id_: int
     x: Range
     y: Range
     z: Range
@@ -32,7 +32,7 @@ class Block:
     supported_blocks: list["Block"] = dataclasses.field(default_factory=list)
 
     def __hash__(self) -> int:
-        return hash(self.id_)
+        return self.id_
 
     def __str__(self) -> str:
         return (
@@ -46,7 +46,7 @@ class Block:
     BLOCK_RE: ClassVar = re.compile(r"(\d+),(\d+),(\d+)~(\d+),(\d+),(\d+)")
 
     @classmethod
-    def parse(cls, line: str, id_: str) -> "Block":
+    def parse(cls, line: str, id_: int) -> "Block":
         m = cls.BLOCK_RE.match(line)
         assert m is not None, repr(line)
         return Block(
@@ -106,7 +106,7 @@ def fall(blocks: list[Block]) -> None:
 
 
 def part_1(inp: str, debug: bool):
-    blocks = [Block.parse(line, str(i)) for i, line in enumerate(inp.splitlines())]
+    blocks = [Block.parse(line, i) for i, line in enumerate(inp.splitlines())]
     if debug:
         for b in blocks:
             print(b)
@@ -130,7 +130,7 @@ def part_1(inp: str, debug: bool):
 
 def part_2(inp: str, debug: bool):
     Block.causes_to_fall.cache_clear()
-    blocks = [Block.parse(line, str(i)) for i, line in enumerate(inp.splitlines())]
+    blocks = [Block.parse(line, i) for i, line in enumerate(inp.splitlines())]
     fall(blocks)
     caused_to_fall_by: dict[Block, int] = collections.defaultdict(lambda: 0)
     for block in blocks:
