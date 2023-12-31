@@ -109,21 +109,21 @@ def hikes_graph(
     return {gn.coords: gn for gn in graph_nodes}
 
 
-def longest_path_length(
+def longest_path_length_recursive(
     nodes: dict[Coords, GraphNode], from_: Coords, to: Coords, visited_bitset: int = 0
 ) -> int | None:
     if from_ == to:
         return 0
     max_path_length: int | None = None
     for adjacent, path_len, _ in nodes[from_].connections:
-        visited_adjacent = 1 << nodes[adjacent].id
-        if visited_bitset & visited_adjacent:
+        adjacent_visited = 1 << nodes[adjacent].id
+        if visited_bitset & adjacent_visited:
             continue
-        subpath_length = longest_path_length(
+        subpath_length = longest_path_length_recursive(
             nodes,
             from_=adjacent,
             to=to,
-            visited_bitset=visited_bitset | (1 << nodes[adjacent].id),
+            visited_bitset=visited_bitset | adjacent_visited,
         )
         if subpath_length is not None:
             path_length = path_len + subpath_length
@@ -135,20 +135,23 @@ def longest_path_length(
 def longest_path_length_iterative(
     nodes: dict[Coords, GraphNode], from_: Coords, to: Coords
 ) -> int | None:
-    stack = collections.deque[tuple[Coords, int, int]]()
+    stack = list[tuple[Coords, int, int]]()
     stack.append((from_, 0, 0))
     max_path_length: int | None = None
     while stack:
-        current, visited, path_len = stack.popleft()
+        current, visited, path_len = stack.pop()
         if current == to and (max_path_length is None or path_len > max_path_length):
             max_path_length = path_len
         new_visited = visited | 1 << nodes[current].id
-        stack.extendleft(
+        stack.extend(
             (adjacent, new_visited, path_len + connection_len)
             for adjacent, connection_len, _ in nodes[current].connections
             if (new_visited & 1 << nodes[adjacent].id) == 0
         )
     return max_path_length
+
+
+longest_path_length = longest_path_length_recursive
 
 
 def find_start_and_target(map: Map[Cell]) -> tuple[Coords, Coords]:
