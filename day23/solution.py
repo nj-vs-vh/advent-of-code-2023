@@ -27,16 +27,29 @@ def slope_direction(slope: Cell) -> Coords:
 
 Coords = tuple[int, int]
 Path = list[Coords]
+GraphNodeId = int
 
 
 @dataclass
 class GraphNode:
-    id: int
+    id: GraphNodeId
     coords: Coords
-    connections: list[tuple[Coords, int, Path]]
+    connections: list[tuple[Coords, int]]
 
 
-Graph = dict[tuple[int, Coords], list[tuple[Coords, Path]]]
+HikesGraph = dict[Coords, GraphNode]
+
+_Connections = list[tuple[GraphNodeId, int]]
+ListHikesGraph = list[_Connections]
+
+
+def to_list_graph(g: HikesGraph) -> ListHikesGraph:
+    """A compressed graph representation to optimize hot DFS code"""
+    res: ListHikesGraph = []
+    for node in sorted(g.values(), key=lambda gn: gn.id):
+        assert node.id == len(res)
+        res.append([(g[adj].id, path_len) for adj, path_len in node.connections])
+    return res
 
 
 def hikes_graph(
@@ -44,7 +57,7 @@ def hikes_graph(
     start: Coords,
     target: Coords,
     follow_slopes: bool,
-) -> dict[Coords, GraphNode]:
+) -> HikesGraph:
     height, width = dimensions(map)
 
     # first, creating "direct graph", tracking what cells are accesible from each cell
@@ -91,7 +104,7 @@ def hikes_graph(
             while True:
                 path.append(path_coords)
                 if path_coords in graph_node_coords:
-                    node.connections.append((path_coords, len(path), path))
+                    node.connections.append((path_coords, len(path)))
                     break
                 else:
                     prev_path_coords = path[-2] if len(path) > 1 else node_coords
@@ -110,43 +123,47 @@ def hikes_graph(
 
 
 def longest_path_length_recursive(
-    nodes: dict[Coords, GraphNode], from_: Coords, to: Coords, visited_bitset: int = 0
-) -> int | None:
-    if from_ == to:
-        return 0
-    max_path_length: int | None = None
-    for adjacent, path_len, _ in nodes[from_].connections:
-        adjacent_visited = 1 << nodes[adjacent].id
-        if visited_bitset & adjacent_visited:
-            continue
-        subpath_length = longest_path_length_recursive(
-            nodes,
-            from_=adjacent,
-            to=to,
-            visited_bitset=visited_bitset | adjacent_visited,
-        )
-        if subpath_length is not None:
-            path_length = path_len + subpath_length
-            if max_path_length is None or path_length > max_path_length:
+    graph: ListHikesGraph,
+    start: GraphNodeId,
+    target: GraphNodeId,
+    visited_bitset: int = 0,
+    acc_lenght: int = 0,
+) -> int:
+    if start == target:
+        return acc_lenght
+    visited_bitset |= 1 << start
+    max_path_length = 0
+    for next_, path_len in graph[start]:
+        if not visited_bitset & 1 << next_:
+            path_length = longest_path_length_recursive(
+                graph,
+                start=next_,
+                target=target,
+                visited_bitset=visited_bitset,
+                acc_lenght=acc_lenght + path_len,
+            )
+            if path_length > max_path_length:
                 max_path_length = path_length
     return max_path_length
 
 
 def longest_path_length_iterative(
-    nodes: dict[Coords, GraphNode], from_: Coords, to: Coords
+    nodes: ListHikesGraph,
+    start: GraphNodeId,
+    target: GraphNodeId,
 ) -> int | None:
-    stack = list[tuple[Coords, int, int]]()
-    stack.append((from_, 0, 0))
+    stack = list[tuple[GraphNodeId, int, int]]()
+    stack.append((start, 0, 0))
     max_path_length: int | None = None
     while stack:
         current, visited, path_len = stack.pop()
-        if current == to and (max_path_length is None or path_len > max_path_length):
+        if current == target and (max_path_length is None or path_len > max_path_length):
             max_path_length = path_len
-        new_visited = visited | 1 << nodes[current].id
+        new_visited = visited | 1 << current
         stack.extend(
             (adjacent, new_visited, path_len + connection_len)
-            for adjacent, connection_len, _ in nodes[current].connections
-            if (new_visited & 1 << nodes[adjacent].id) == 0
+            for adjacent, connection_len in nodes[current]
+            if (new_visited & 1 << adjacent) == 0
         )
     return max_path_length
 
@@ -168,13 +185,25 @@ def part_1(inp: str, debug: bool):
     if debug:
         print(format_map(map, cell_width=2))
 
-    start, target = find_start_and_target(map)
-    graph = hikes_graph(map, start, target, follow_slopes=True)
-    print(longest_path_length(graph, from_=start, to=target))
+    start_coords, target_coords = find_start_and_target(map)
+    graph = hikes_graph(map, start_coords, target_coords, follow_slopes=True)
+    print(
+        longest_path_length(
+            to_list_graph(graph),
+            start=graph[start_coords].id,
+            target=graph[target_coords].id,
+        )
+    )
 
 
 def part_2(inp: str, debug: bool):
     map: Map[Cell] = parse_simple_map(inp)
-    start, target = find_start_and_target(map)
-    graph = hikes_graph(map, start, target, follow_slopes=False)
-    print(longest_path_length(graph, start, target))
+    start_coords, target_coords = find_start_and_target(map)
+    graph = hikes_graph(map, start_coords, target_coords, follow_slopes=False)
+    print(
+        longest_path_length(
+            to_list_graph(graph),
+            start=graph[start_coords].id,
+            target=graph[target_coords].id,
+        )
+    )
