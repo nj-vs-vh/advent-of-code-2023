@@ -126,25 +126,25 @@ def longest_path_length_recursive(
     graph: ListHikesGraph,
     start: GraphNodeId,
     target: GraphNodeId,
-    visited_bitset: int = 0,
-    acc_lenght: int = 0,
+    visited_mask: int = 0,
+    path_acc: int = 0,
 ) -> int:
     if start == target:
-        return acc_lenght
-    visited_bitset |= 1 << start
-    max_path_length = 0
-    for next_, path_len in graph[start]:
-        if not visited_bitset & 1 << next_:
-            path_length = longest_path_length_recursive(
+        return path_acc
+    visited_mask |= 1 << start
+    max_path_len = 0
+    for next_, edge_len in graph[start]:
+        if not visited_mask & 1 << next_:
+            path_len = longest_path_length_recursive(
                 graph,
-                start=next_,
-                target=target,
-                visited_bitset=visited_bitset,
-                acc_lenght=acc_lenght + path_len,
+                next_,
+                target,
+                visited_mask,
+                path_acc + edge_len,
             )
-            if path_length > max_path_length:
-                max_path_length = path_length
-    return max_path_length
+            if path_len > max_path_len:
+                max_path_len = path_len
+    return max_path_len
 
 
 def longest_path_length_iterative(

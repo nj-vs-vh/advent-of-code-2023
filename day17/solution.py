@@ -1,5 +1,5 @@
 import heapq
-from typing import Literal, NamedTuple, Optional
+from typing import Literal, Optional
 
 from utils import format_map
 
@@ -10,45 +10,34 @@ def parse_input(inp: str) -> list[list[int]]:
 
 Direction = Literal["^", "v", "<", ">"]
 DIRECTIONS: list[Direction] = ["^", "v", "<", ">"]
+LEFT_TURN: dict[Direction, Direction] = {
+    "^": "<",
+    "<": "v",
+    "v": ">",
+    ">": "^",
+}
+RIGHT_TURN: dict[Direction, Direction] = {
+    "^": ">",
+    ">": "v",
+    "v": "<",
+    "<": "^",
+}
+DELTA_I: dict[Direction, int] = {
+    "^": -1,
+    ">": 0,
+    "v": 1,
+    "<": 0,
+}
+DELTA_J: dict[Direction, int] = {
+    "^": 0,
+    ">": 1,
+    "v": 0,
+    "<": -1,
+}
 
 
-def move(i: int, j: int, direction: Direction) -> tuple[int, int]:
-    match direction:
-        case "^":
-            return (i - 1, j)
-        case ">":
-            return (i, j + 1)
-        case "v":
-            return (i + 1, j)
-        case "<":
-            return (i, j - 1)
-
-
-def turn_right(direction: Direction) -> Direction:
-    match direction:
-        case "^":
-            return ">"
-        case ">":
-            return "v"
-        case "v":
-            return "<"
-        case "<":
-            return "^"
-
-
-def turn_left(direction: Direction) -> Direction:
-    match direction:
-        case "^":
-            return "<"
-        case "<":
-            return "v"
-        case "v":
-            return ">"
-        case ">":
-            return "^"
-
-
-State = tuple[int, int, Direction, int, bool]
+#                     i  | j  | dir     |streak|can stop?
+DijkstraState = tuple[int, int, Direction, int, bool]
 
 
 def find_crucible_path(
@@ -61,7 +50,7 @@ def find_crucible_path(
     height = len(city_block_losses)
     width = len(city_block_losses[0])
 
-    initial_states = [
+    initial_states: list[DijkstraState] = [
         (
             0,
             0,
@@ -71,14 +60,14 @@ def find_crucible_path(
         )
         for direction in DIRECTIONS
     ]
-    heat_loss: dict[State, int] = {s: 0 for s in initial_states}
-    next_state_queue: list[tuple[int, State]] = [(0, state) for state in initial_states]
-    heapq.heapify(next_state_queue)
-    visited: set[State] = set()
-    previous: dict[State, State] = dict()
-    final_state: Optional[State] = None
-    while next_state_queue:
-        current_loss, current = heapq.heappop(next_state_queue)
+    heat_loss: dict[DijkstraState, int] = {s: 0 for s in initial_states}
+    state_queue: list[tuple[int, DijkstraState]] = [(0, state) for state in initial_states]
+    heapq.heapify(state_queue)
+    visited: set[DijkstraState] = set()
+    previous: dict[DijkstraState, DijkstraState] = dict()
+    final_state: Optional[DijkstraState] = None
+    while True:  # no need to check queue is full, we expect to break before it's empty
+        current_loss, current = heapq.heappop(state_queue)
         visited.add(current)
         (
             current_i,
@@ -94,8 +83,8 @@ def find_crucible_path(
 
         next_directions: list[Direction] = []
         if current_concecutive_direct_moves >= min_concecutive_direct_moves:
-            next_directions.append(turn_right(current_direction))
-            next_directions.append(turn_left(current_direction))
+            next_directions.append(RIGHT_TURN[current_direction])
+            next_directions.append(LEFT_TURN[current_direction])
         if current_concecutive_direct_moves < max_concecutive_direct_moves:
             next_directions.append(current_direction)
         for next_direction in next_directions:
@@ -103,7 +92,8 @@ def find_crucible_path(
                 0 if next_direction != current_direction else current_concecutive_direct_moves + 1
             )
             next = (
-                *move(current_i, current_j, next_direction),
+                current_i + DELTA_I[current_direction],
+                current_j + DELTA_J[current_direction],
                 next_direction,
                 next_concecutive_moves,
                 next_concecutive_moves >= min_concecutive_direct_moves,
@@ -117,13 +107,13 @@ def find_crucible_path(
                 next_loss = current_loss + city_block_losses[next[0]][next[1]]
                 next_loss_so_far = heat_loss.get(next)
                 if next_loss_so_far is None or next_loss_so_far > next_loss:
-                    heapq.heappush(next_state_queue, (next_loss, next))
+                    heapq.heappush(state_queue, (next_loss, next))
                     heat_loss[next] = next_loss
-                    previous[next] = current
+                    if debug:
+                        previous[next] = current
 
     if debug:
         trace_map = [["."] * width for _ in range(height)]
-        assert final_state
         trace_step = final_state
         while True:
             (i, j, dir_, *_) = trace_step
